@@ -111,10 +111,10 @@ class DCPProto(asyncio.Protocol):
         target = self.server.clients[target]
 
         # Get our message
-        message = line.kval.get('message', [''])
+        message = line.kval.get('body', [''])
 
         # Bam
-        target.send(self.user, target, 'message', {'message' : message})
+        target.send(self.user, target, 'message', {'body' : message})
 
     def data_received(self, data):
         data = self.__buf + data
