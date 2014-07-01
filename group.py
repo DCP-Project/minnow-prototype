@@ -10,7 +10,7 @@ class DCPGroup:
         self.members = set()
 
         if acl is None:
-            self.acl = {}
+            self.acl = defaultdict(list) 
 
         if not self.name.startswith('#'):
             self.name = '#' + self.name
@@ -20,6 +20,7 @@ class DCPGroup:
             raise Exception('Duplicate addition')
 
         self.members.add(user)
+        user.groups.add(self)
 
         kval = defaultdict(list)
         if reason:
@@ -28,11 +29,17 @@ class DCPGroup:
         self.send(user.handle, self.name, 'group-enter', kval)
 
     def member_del(self, user, reason=None):
+        if user not in self.members:
+            raise Exception('Duplicate removal')
+
         self.members.remove(user)
+        user.groups.remove(user)
 
         kval = defaultdict(list)
-        if reason:
-            kval['reason'].append(reason)
+        if not reason:
+            reason = ['']
+        
+        kval['reason'].append(reason)
 
         self.send(user.handle, self.name, 'group-exit', kval)
 
@@ -51,4 +58,4 @@ class DCPGroup:
             if user in filter:
                 continue
 
-            self.user.send(source, target, self.name, command, kval)
+            user.send(source, target, self.name, command, kval)
