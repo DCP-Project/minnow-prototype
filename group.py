@@ -53,6 +53,7 @@ class DCPGroup:
                 # Overflow... send what we have and continue
                 user.send(self, user.handle, 'group-names', kval)
                 tlen = d_tlen + len(user2.name) + 1
+                kval['users'] = []
 
             kval['users'].append(user2.name)
 
