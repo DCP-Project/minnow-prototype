@@ -63,7 +63,7 @@ class DCPFrame:
         line = [self.source, self.target, self.command]
         for k, v in self.kval.items():
             for v2 in v:
-                line.extend((k, v2))
+                line.extend([k, v2])
 
         line.append('\0')
 

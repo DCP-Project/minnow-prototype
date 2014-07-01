@@ -20,5 +20,8 @@ class DCPUser:
 
         self.proto.send(source, target, command, kval)
 
+    def message(self, source, message):
+        self.send(source, self, 'message', {'body' : message})
+
     def __hash__(self):
-        return hash(name) ^ hash(gecos)
+        return hash((hash(self.name), hash(self.gecos)))

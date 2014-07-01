@@ -1,4 +1,5 @@
 from collections import defaultdict
+from user import DCPUser
 
 class DCPGroup:
     """ Like an IRC channel """
@@ -28,7 +29,7 @@ class DCPGroup:
 
         self.send(user.handle, self.name, 'group-enter', kval)
 
-    def member_del(self, user, reason=None):
+    def member_del(self, user, reason=None, permanent=False):
         if user not in self.users:
             raise Exception('Duplicate removal')
 
@@ -41,17 +42,22 @@ class DCPGroup:
         
         kval['reason'].append(reason)
 
+        if permanent:
+            kval['quit'] = '*'
+
         self.send(user.handle, self.name, 'group-exit', kval)
 
-    def message(self, user, message):
+    def message(self, source, message):
         # TODO various ACL checks
-        if user not in self.users:
-            raise Exception('User not in group')
+        if isinstance(source, DCPUser) and source not in self.users:
+            self.server.error(source, 'message', 'You aren\'t in that group',
+                              False)
+            return
 
         kval = defaultdict(list)
-        kval['message'].append(message)
+        kval['body'] = message
 
-        self.send(self.name, user.handle, 'message', kval, [user])
+        self.send(self.name, user.handle, 'message', kval, [source])
 
     def send(self, source, target, command, kval=None, filter=[]):
         for user in self.users:
