@@ -1,5 +1,4 @@
 from collections import defaultdict
-from parser import DCPFrame
 
 class DCPRoster:
     # TODO
