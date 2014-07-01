@@ -1,17 +1,23 @@
 from collections import defaultdict
 from user import DCPUser
+from parser import MAXFRAME
+from time import time
 
 class DCPGroup:
     """ Like an IRC channel """
-    def __init__(self, proto, name, topic=None, acl=None):
+    def __init__(self, proto, name, topic=None, acl=None, ts=None):
         self.proto = proto
         self.name = name
         self.topic = topic
         self.acl = acl
         self.users = set()
+        self.ts = None
 
-        if acl is None:
+        if self.acl is None:
             self.acl = defaultdict(list) 
+
+        if self.ts is None:
+            self.ts = round(time.time())
 
         if not self.name.startswith('#'):
             self.name = '#' + self.name
@@ -23,11 +29,42 @@ class DCPGroup:
         self.users.add(user)
         user.groups.add(self)
 
-        kval = defaultdict(list)
+        kval = {}
         if reason:
-            kval['reason'].append(reason)
+            kval['reason'] = [reason]
 
-        self.send(user.handle, self.name, 'group-enter', kval)
+        self.send(user.handle, self, 'group-enter', kval)
+
+        # Burst the channel info
+        kval = {
+            'time' : [str(self.ts)],
+            'topic' : [self.topic if self.topic else ''],
+        }
+        user.send(self, user.handle, 'group-info', kval)
+
+        kval = {
+            'users' : []
+        }
+
+        d_tlen = tlen = 500 # Probably too much... but good enough for now.
+        for user2 in self.users:
+            tlen += len(user2.name) + 1
+            if tlen >= MAXFRAME:
+                # Overflow... send what we have and continue
+                user.send(self, user.handle, 'group-names', kval)
+                tlen = d_tlen + len(user2.name) + 1
+
+            kval['users'].append(user2.name)
+
+        # Burst what's left
+        if len(kval['users']) > 0:
+            user.send(self, user.handle, 'group-names', kval)
+
+        # Burst ACL's
+        kval = {
+            'acl' : [],
+        }
+        user.send(self, user.handle, 'acl-list', None)
 
     def member_del(self, user, reason=None, permanent=False):
         if user not in self.users:
