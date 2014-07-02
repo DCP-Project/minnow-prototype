@@ -30,9 +30,9 @@ class DCPFrame:
             if line[-1] == b'':
                 del line[-1]
 
-            source = line[0].decode('utf-8', 'replace')
-            target = line[1].decode('utf-8', 'replace')
-            command = line[2].decode('utf-8', 'replace')
+            source = line[0].decode('utf-8', 'replace').lower()
+            target = line[1].decode('utf-8', 'replace').lower()
+            command = line[2].decode('utf-8', 'replace').lower()
 
             # Generate the key/val portion
             kval = defaultdict(list)
@@ -48,7 +48,8 @@ class DCPFrame:
                 # sequentially one by one.
                 i = [islice(iter(line), 3, None)] * 2
                 for k, v in zip(*i):
-                    k = k.decode('utf-8', 'replace')
+                    # All keys are lowercase
+                    k = k.decode('utf-8', 'replace').lower()
                     v = v.decode('utf-8', 'replace')
                     if v in kval[k]:
                         raise Exception('Duplicate value not allowed')
