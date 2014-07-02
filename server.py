@@ -30,7 +30,7 @@ class DCPServer:
             command = line.command.replace('-', '_')
             func = getattr(self, 'cmd_' + command, None)
             if func is None:
-                self.error(user, command, 'No such command', False)
+                self.error(proto, command, 'No such command', False)
                 return
 
             req = func.__annotations__.get('return', SIGNON)
