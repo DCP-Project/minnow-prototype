@@ -1,5 +1,8 @@
+#!/usr/bin/env python3
+
 import time
 import asyncio
+import re
 
 from crypt import crypt
 from uuid import uuid4 as uuid
@@ -7,16 +10,19 @@ from uuid import uuid4 as uuid
 from user import DCPUser
 from group import DCPGroup
 from storage import DCPUserStorage
+from config import *
 import parser
+
+valid_handle = re.compile(r'^[^#!=&$,\?\*\[\]][^=$,\?\*\[\]]+$')
 
 # Flags for the annotations
 UNREG = 1
 SIGNON = 2
 
 class DCPServer:
-    def __init__(self, name, password='loldongs'):
+    def __init__(self, name, servpass=servpass):
         self.name = name
-        self.password = password
+        self.servpass = servpass
 
         self.users = dict()
         self.groups = dict()
@@ -65,8 +71,6 @@ class DCPServer:
                            'error')
                 raise e
             
-            print('Line recieved', repr(line))
-
     def user_exit(self, user):
         if user is None:
             return
@@ -83,7 +87,7 @@ class DCPServer:
             self.error(proto, line.command, 'No handle')
             return
 
-        if name.startswith(('=', '&' '!', '#')):
+        if valid_handle.match(name) is None:
             self.error(proto, line.command, 'Invalid handle', True,
                        {'handle' : [name]})
             return
@@ -126,12 +130,18 @@ class DCPServer:
         user.send(self, user, 'signon', kval)
 
     def cmd_register(self, proto, line) -> UNREG:
+        if self.servpass:
+            rservpass = line.kval.get('servpass', [None])[0]
+            if rservpass != self.servpass:
+                self.error(proto, line.command, 'Bad server password')
+                return
+
         name = line.kval.get('handle', [None])[0]
         if name is None:
             self.error(proto, line.command, 'No handle')
             return
 
-        if name.startswith(('=', '&' '!', '#')):
+        if valid_handle.match(name) is None:
             self.error(proto, line.command, 'Invalid handle', False,
                        {'handle' : [name]})
             return
@@ -254,7 +264,7 @@ class DCPServer:
 
         group.member_del(user, line.kval.get('reason', ['']))
 
-server = DCPServer('test.org')
+server = DCPServer(servname)
 
 class DCPProto(asyncio.Protocol):
     """ This is the asyncio connection stuff...
@@ -262,9 +272,7 @@ class DCPProto(asyncio.Protocol):
     Everything should just call back to the main server/user stuff here.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
+    def __init__(self):
         self.__buf = b''
         
         # Global state
@@ -332,14 +340,14 @@ class DCPProto(asyncio.Protocol):
             self.transport.close()
 
 loop = asyncio.get_event_loop()
-coro = loop.create_server(DCPProto, '0.0.0.0', 7266)
-aserver = loop.run_until_complete(coro)
-print('serving on {}'.format(aserver.sockets[0].getsockname()))
+coro = loop.create_server(DCPProto, *listen)
+_server = loop.run_until_complete(coro)
+print('serving on {}'.format(_server.sockets[0].getsockname()))
 
 try:
     loop.run_forever()
 except KeyboardInterrupt:
     print("exit")
 finally:
-    aserver.close()
+    _server.close()
     loop.close()
