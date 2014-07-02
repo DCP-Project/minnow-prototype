@@ -158,6 +158,11 @@ class DCPServer:
                        {'target' : [target]})
             return
 
+        if len(target) > 24:
+            self.error(user, line.command, 'Group name too long', False,
+                       {'target' : [target]})
+            return
+
         if target not in self.groups:
             print('Creating group {}'.format(target))
             self.groups[target] = DCPGroup(proto, target)
