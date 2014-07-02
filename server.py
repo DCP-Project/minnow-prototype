@@ -1,7 +1,12 @@
 import time
 import asyncio
+
+from crypt import crypt
+from uuid import uuid4 as uuid
+
 from user import DCPUser
 from group import DCPGroup
+from storage import DCPUserStorage
 import parser
 
 # Flags for the annotations
@@ -16,13 +21,15 @@ class DCPServer:
         self.users = dict()
         self.groups = dict()
 
-    def error(self, dest, command, reason, fatal=True):
+        self.user_store = DCPUserStorage()
+
+    def error(self, dest, command, reason, fatal=True, extargs=None):
         if hasattr(dest, 'proto'):
             proto = dest.proto
         elif hasattr(dest, 'error'):
             proto = dest
 
-        proto.error(command, reason, fatal)
+        proto.error(command, reason, fatal, extargs)
 
     def process(self, proto, data):
         # Turn a protocol into a user
@@ -71,39 +78,43 @@ class DCPServer:
             group.member_del(user, permanent=True)
 
     def cmd_signon(self, proto, line) -> UNREG:
-        password = line.kval.get('password', ['*'])[0]
-        if password != self.password:
-            self.error(proto, line.command, 'Invalid password')
-            return
-
-        # Not really security I guess...
-        del password
-
         name = line.kval.get('handle', [None])[0]
         if name is None:
             self.error(proto, line.command, 'No handle')
             return
 
-        if name.startswith(('=', '&' '!')):
+        if name.startswith(('=', '&' '!', '#')):
             self.error(proto, line.command, 'Invalid handle', True,
-                       {'handle' : [handle]})
+                       {'handle' : [name]})
             return
 
-        if len(name) > 24:
+        if len(name) > 48:
             self.error(proto, line.command, 'Handle is too long', True,
-                       {'handle' : [handle]})
+                       {'handle' : [name]})
+            return
+
+        # Retrieve the user info
+        uinfo = self.user_store.get(name)
+        if uinfo is None:
+            self.error(proto, line.command, 'You are not registered with ' \
+                       'the server', True, {'handle' : [name]})
+            return
+
+        password = line.kval.get('password', ['*'])[0]
+        password = crypt(password, uinfo.hash)
+        if password != uinfo.hash:
+            self.error(proto, line.command, 'Invalid password')
             return
 
         if name in self.users:
             # TODO - burst all state to the user
             self.error(proto, line.command, 'No multiple users at the '\
-                       'moment', True, {'handle' : [handle]})
+                       'moment', True, {'handle' : [name]})
             return
 
-        gecos = line.kval.get('gecos', [name])[0]
         options = line.kval.get('options', [])
 
-        user = DCPUser(proto, name, gecos, set(), options)
+        user = DCPUser(proto, name, uinfo.gecos, set(), options)
         proto.user = self.users[name] = user
 
         kval = {
@@ -113,6 +124,53 @@ class DCPServer:
             'options' : [],
         }
         user.send(self, user, 'signon', kval)
+
+    def cmd_register(self, proto, line) -> UNREG:
+        name = line.kval.get('handle', [None])[0]
+        if name is None:
+            self.error(proto, line.command, 'No handle')
+            return
+
+        if name.startswith(('=', '&' '!', '#')):
+            self.error(proto, line.command, 'Invalid handle', False,
+                       {'handle' : [name]})
+            return
+
+        if len(name) > 48:
+            self.error(proto, line.command, 'Handle is too long', False,
+                       {'handle' : [name]})
+            return
+
+        if self.user_store.get(name) is not None:
+            self.error(proto, line.command, 'Handle already registered', False,
+                       {'handle' : [name]})
+            return
+
+        gecos = line.kval.get('gecos', [name])[0]
+        if len(gecos) > 48:
+            self.error(proto, line.command, 'GECOS is too long', False,
+                       {'gecos' : [gecos]})
+            return
+
+        password = line.kval.get('password', [None])[0]
+        if password is None or len(password) < 5:
+            # Password is not sent back for security reasons
+            self.error(proto, line.command, 'Bad password', False)
+            return
+
+        password = crypt(password, "$6${}$".format(uuid().hex))
+
+        # Bang
+        self.user_store.add(name, password, gecos, set())
+
+        kval = {
+            'handle' : [name],
+            'gecos' : [gecos],
+            'message' : ['Registration successful, beginning signon'],
+        }
+        proto.send(self, None, line.command, kval)
+
+        self.cmd_signon(proto, line)
 
     def cmd_message(self, user, line) -> SIGNON:
         proto = user.proto
@@ -158,7 +216,7 @@ class DCPServer:
                        {'target' : [target]})
             return
 
-        if len(target) > 24:
+        if len(target) > 48:
             self.error(user, line.command, 'Group name too long', False,
                        {'target' : [target]})
             return
