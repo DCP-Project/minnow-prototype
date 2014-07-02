@@ -88,6 +88,10 @@ class DCPServer:
             self.error(proto, line.command, 'Invalid handle')
             return
 
+        if len(name) > 24:
+            self.error(proto, line.command, 'Handle is too long')
+            return
+
         if name in self.users:
             # TODO - burst all state to the user
             self.error(proto, line.command, 'No multiple users at the '\
