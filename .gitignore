@@ -42,3 +42,8 @@ nosetests.xml
 # Backup files
 *.sw[nop]
 *~
+
+# Ignore various local db's
+users.db
+groups.db
+rosters.db
