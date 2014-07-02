@@ -85,17 +85,19 @@ class DCPServer:
             return
 
         if name.startswith(('=', '&' '!')):
-            self.error(proto, line.command, 'Invalid handle')
+            self.error(proto, line.command, 'Invalid handle', True,
+                       {'handle' : [handle]})
             return
 
         if len(name) > 24:
-            self.error(proto, line.command, 'Handle is too long')
+            self.error(proto, line.command, 'Handle is too long', True,
+                       {'handle' : [handle]})
             return
 
         if name in self.users:
             # TODO - burst all state to the user
             self.error(proto, line.command, 'No multiple users at the '\
-                       'moment')
+                       'moment', True, {'handle' : [handle]})
             return
 
         gecos = line.kval.get('gecos', [name])[0]
