@@ -11,7 +11,7 @@ class DCPStoredUser:
         # Reserved
         self.acls = set()
 
-class DCPUserStorage:
+class UserStorage:
     def __init__(self, filename='users.db'):
         self.filename = filename
 

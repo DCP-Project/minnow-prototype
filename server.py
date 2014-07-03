@@ -8,9 +8,9 @@ from crypt import crypt, mksalt
 from hmac import compare_digest
 import ssl
 
-from user import DCPUser
-from group import DCPGroup
-from storage import DCPUserStorage
+from user import User
+from group import Group
+from storage import UserStorage
 from config import *
 import parser
 
@@ -28,7 +28,7 @@ class DCPServer:
         self.users = dict()
         self.groups = dict()
 
-        self.user_store = DCPUserStorage()
+        self.user_store = UserStorage()
 
     def error(self, dest, command, reason, fatal=True, extargs=None):
         if hasattr(dest, 'proto'):
@@ -40,7 +40,7 @@ class DCPServer:
 
     def process(self, proto, data):
         # Turn a protocol into a user
-        for line in parser.DCPFrame.parse(data):
+        for line in parser.Frame.parse(data):
             command = line.command.replace('-', '_')
             func = getattr(self, 'cmd_' + command, None)
             if func is None:
@@ -118,7 +118,7 @@ class DCPServer:
 
         options = line.kval.get('options', [])
 
-        user = DCPUser(proto, name, uinfo.gecos, set(), options)
+        user = User(proto, name, uinfo.gecos, set(), options)
         proto.user = self.users[name] = user
 
         kval = {
@@ -233,7 +233,7 @@ class DCPServer:
 
         if target not in self.groups:
             print('Creating group {}'.format(target))
-            self.groups[target] = DCPGroup(proto, target)
+            self.groups[target] = Group(proto, target)
 
         group = self.groups[target]
         if group in user.groups:
@@ -307,8 +307,8 @@ class DCPProto(asyncio.Protocol):
 
     @staticmethod
     def _proto_name(target):
-        if isinstance(target, (DCPUser, DCPGroup, DCPProto)):
-            # XXX for now # is implicit with DCPGroup.
+        if isinstance(target, (User, Group, DCPProto)):
+            # XXX for now # is implicit with Group.
             # this is subject to change
             return target.name
         elif isinstance(target, DCPServer):
@@ -323,7 +323,7 @@ class DCPProto(asyncio.Protocol):
         target = self._proto_name(target)
         if kval is None: kval = dict()
 
-        frame = parser.DCPFrame(source, target, command, kval)
+        frame = parser.Frame(source, target, command, kval)
         self.transport.write(bytes(frame))
 
     def error(self, command, reason, fatal=True, extargs=None):
@@ -343,6 +343,7 @@ class DCPProto(asyncio.Protocol):
 ctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 ctx.load_default_certs(ssl.Purpose.CLIENT_AUTH)
 ctx.load_cert_chain('cert.pem')
+
 ctx.options &= ~ssl.OP_ALL
 ctx.options |= ssl.OP_SINGLE_DH_USE | ssl.OP_SINGLE_ECDH_USE
 ctx.options |= (ssl.OP_NO_SSLv2 | ssl.OP_NO_SSLv3 | ssl.OP_NO_TLSv1 |

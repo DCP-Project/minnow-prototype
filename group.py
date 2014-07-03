@@ -1,9 +1,9 @@
 from collections import defaultdict
-from user import DCPUser
+from user import User
 from parser import MAXFRAME
 from time import time
 
-class DCPGroup:
+class Group:
     """ Like an IRC channel """
     def __init__(self, proto, name, topic=None, acl=None, ts=None):
         self.proto = proto
@@ -87,7 +87,7 @@ class DCPGroup:
 
     def message(self, source, message):
         # TODO various ACL checks
-        if isinstance(source, DCPUser) and source not in self.users:
+        if isinstance(source, User) and source not in self.users:
             self.server.error(source, 'message', 'You aren\'t in that group',
                               False)
             return

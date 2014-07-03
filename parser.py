@@ -3,7 +3,7 @@ from itertools import islice
 
 MAXFRAME = 1370
 
-class DCPFrame:
+class Frame:
     def __init__(self, source, target, command, kval):
         self.source = source
         self.target = target
@@ -98,7 +98,7 @@ class DCPFrame:
         return llen
 
     def __repr__(self):
-        fmtstr = 'DCPFrame(source={}, target={}, command={}, kval={})'
+        fmtstr = 'Frame(source={}, target={}, command={}, kval={})'
         return fmtstr.format(self.source, self.target, self.command, self.kval)
 
 

@@ -1,10 +1,10 @@
 from collections import defaultdict
 
-class DCPRoster:
+class Roster:
     # TODO
     pass
 
-class DCPUser:
+class User:
     def __init__(self, proto, name, gecos, roster, options):
         self.proto = proto
         self.name = name
