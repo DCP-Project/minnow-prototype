@@ -347,6 +347,7 @@ ctx.options &= ~ssl.OP_ALL
 ctx.options |= ssl.OP_SINGLE_DH_USE | ssl.OP_SINGLE_ECDH_USE
 ctx.options |= (ssl.OP_NO_SSLv2 | ssl.OP_NO_SSLv3 | ssl.OP_NO_TLSv1 |
                 ssl.OP_NO_TLSv1_1)
+ctx.options |= ssl.OP_NO_COMPRESSION
 
 loop = asyncio.get_event_loop()
 coro = loop.create_server(DCPProto, *listen, ssl=ctx)
