@@ -1,7 +1,9 @@
 from collections import defaultdict
+from time import time
+
+from errors import *
 from user import User
 from parser import MAXFRAME
-from time import time
 
 class Group:
     """ Like an IRC channel """
@@ -24,7 +26,8 @@ class Group:
 
     def member_add(self, user, reason=None):
         if user in self.users:
-            raise Exception('Duplicate addition')
+            raise GroupAdditionError('Duplicate user added: {}'.format(
+                user.name))
 
         self.users.add(user)
         user.groups.add(self)
@@ -69,7 +72,8 @@ class Group:
 
     def member_del(self, user, reason=None, permanent=False):
         if user not in self.users:
-            raise Exception('Duplicate removal')
+            raise GroupRemovalError('Nonexistent user {} removed'.format(
+                user.name))
 
         self.users.remove(user)
         user.groups.remove(self)

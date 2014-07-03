@@ -1,6 +1,8 @@
 from collections import defaultdict
 from itertools import islice
 
+from errors import *
+
 MAXFRAME = 1370
 
 class Frame:
@@ -14,7 +16,7 @@ class Frame:
     def parse(cls, text):
         lines = text.split(b'\0\0')
         if lines[-1] != b'':
-            raise Exception('Incomplete frame')
+            raise ParserIncompleteError('Incomplete frame')
 
         del lines[-1]
 
@@ -23,7 +25,7 @@ class Frame:
             # Grab the llen
             llen = int.from_bytes(line[:2], 'big')
             if llen > MAXFRAME:
-                raise Exception('Frame is too large')
+                raise ParserSizeError('Frame is too large')
 
             # Tokenise
             line = line[3:].split(b'\0')
@@ -52,7 +54,7 @@ class Frame:
                     k = k.decode('utf-8', 'replace').lower()
                     v = v.decode('utf-8', 'replace')
                     if v in kval[k]:
-                        raise Exception('Duplicate value not allowed')
+                        raise ParserValueError('Duplicate value not allowed')
 
                     kval[k].append(v)
 
@@ -73,7 +75,7 @@ class Frame:
         # has to include the len of the short (2 bytes) + the sep
         llen = len(line) + 3
         if llen > MAXFRAME:
-            raise Exception('Frame is too large')
+            raise ParserSizeError('Frame is too large')
 
         llen = int.to_bytes(llen, 2, 'big')
 

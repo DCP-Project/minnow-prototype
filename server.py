@@ -12,6 +12,7 @@ from user import User
 from group import Group
 from storage import UserStorage
 from config import *
+from errors import *
 import parser
 
 valid_handle = re.compile(r'^[^#!=&$,\?\*\[\]][^=$,\?\*\[\]]+$')
