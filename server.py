@@ -313,7 +313,7 @@ class DCPProto(asyncio.Protocol):
         try:
             server.process(self, data)
         except ParserError as e:
-            self.error('*', 'Parser failure', {'reason' : [str(e)]})
+            self.error('*', 'Parser failure', {'reason' : [str(e)]}, False)
         except Exception as e:
             self.error('*', 'Internal server error')
             print('Oops, exception happened', e)
