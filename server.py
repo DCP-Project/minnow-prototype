@@ -4,8 +4,7 @@ import time
 import asyncio
 import re
 
-from crypt import crypt
-from uuid import uuid4 as uuid
+from crypt import crypt, mksalt
 
 from user import DCPUser
 from group import DCPGroup
@@ -168,7 +167,7 @@ class DCPServer:
             self.error(proto, line.command, 'Bad password', False)
             return
 
-        password = crypt(password, "$6${}$".format(uuid().hex))
+        password = crypt(password, mksalt())
 
         # Bang
         self.user_store.add(name, password, gecos, set())
