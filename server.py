@@ -39,6 +39,7 @@ class DCPServer:
 
         if fatal:
             proto = getattr(dest, 'proto', dest)
+            peername = proto.transport.get_extra_info('peername')
             print('Fatal error encountered for client {} ({}: {} [{}])'.format(
                 peername, command, reason, extargs))
 
