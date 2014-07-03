@@ -140,7 +140,7 @@ class DCPServer:
         user.send(self, user, 'signon', kval)
 
     def cmd_register(self, proto, line) -> UNREG:
-        if self.servpass:0
+        if self.servpass:
             rservpass = line.kval.get('servpass', [None])[0]
             if rservpass != self.servpass:
                 self.error(proto, line.command, 'Bad server password')
