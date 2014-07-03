@@ -22,6 +22,9 @@ class Frame:
 
         retlines = []
         for line in lines:
+            if len(line) < 10:
+                raise ParserSizeError('Frame is too small')
+
             # Grab the llen
             llen = int.from_bytes(line[:2], 'big')
             if llen > MAXFRAME:
@@ -32,17 +35,21 @@ class Frame:
             if line[-1] == b'':
                 del line[-1]
 
+            if len(line) < 3:
+                raise ParserInvalidError('Invalid DCP frame')
+
             source = line[0].decode('utf-8', 'replace').lower()
             target = line[1].decode('utf-8', 'replace').lower()
             command = line[2].decode('utf-8', 'replace').lower()
 
             # Generate the key/val portion
             kval = defaultdict(list)
-            if (len(line) - 3) % 2:
-                # Pad if we have too few items
-                line.append(b'*')
 
             if len(line) > 3:
+                if (len(line) - 3) % 2:
+                    # Pad if we have too few items
+                    line.append(b'*')
+
                 # This part might be a bit weird for a few...
                 # We make a slice of line from the third position to the end,
                 # then we duplicate the *same* iterator (same reference and all)
