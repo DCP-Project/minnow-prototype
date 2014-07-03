@@ -29,6 +29,45 @@ class DCPServer:
         self.users = dict()
         self.groups = dict()
 
+        f = None
+
+        # A list of lists
+        self.motd = []
+        try:
+            f = open('motd.txt', 'r')
+
+            # A pessimistic guess
+            # (max name len + server name + seps + cmd + other gunk)
+            curlen = baselen = len(self.name) + 128
+            curframe = []
+            for line in f:
+                if line == '':
+                    break
+
+                line = line.rstrip()
+
+                if len(line) > 200:
+                    # Cap it for the love of god
+                    line = line[:200]
+
+                # 6 is motd\0...\0
+                llen = len(line) + 6
+                if llen + curlen > parser.MAXFRAME:
+                    self.motd.append(curframe)
+                    curframe = []
+                    curlen = baselen
+
+                curlen += llen
+                curframe.append(line)
+
+            self.motd.append(curframe)
+        except Exception:
+            pass
+        finally:
+            if f: f.close()
+
+        print('motd loaded', self.motd)
+
         self.user_store = UserStorage()
 
     def error(self, dest, command, reason, fatal=True, extargs=None):
@@ -139,6 +178,9 @@ class DCPServer:
         }
         user.send(self, user, 'signon', kval)
 
+        # Send the MOTD
+        self.cmd_motd(user, line)
+
     def cmd_register(self, proto, line) -> UNREG:
         if self.servpass:
             rservpass = line.kval.get('servpass', [None])[0]
@@ -224,6 +266,22 @@ class DCPServer:
 
         # Bam
         target.message(user, message)
+
+    def cmd_motd(self, user, line) -> SIGNON:
+        if not self.motd:
+            user.send(self, user, 'motd', {})
+            return
+
+        total = str(len(self.motd))
+
+        for i, block in enumerate(self.motd):
+            kval = {
+                'text' : block,
+                'multipart' : ['*'],
+                'part' : [str(i + 1)],
+                'total' : [total],
+            }
+            user.send(self, user, 'motd', kval)
 
     def cmd_group_enter(self, user, line) -> SIGNON:
         target = line.target
