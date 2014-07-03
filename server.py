@@ -7,6 +7,7 @@ import re
 from crypt import crypt, mksalt
 from hmac import compare_digest
 import ssl
+import logging
 
 from user import User
 from group import Group
@@ -15,6 +16,10 @@ from config import *
 from errors import *
 import parser
 
+logging.basicConfig(level=log_level)
+logger = logging.getLogger(__name__)
+
+# This is subject to change
 valid_handle = re.compile(r'^[^#!=&$,\?\*\[\]][^=$,\?\*\[\]]+$')
 
 # Flags for the annotations
@@ -78,8 +83,8 @@ class DCPServer:
         if fatal:
             proto = getattr(dest, 'proto', dest)
             peername = proto.transport.get_extra_info('peername')
-            print('Fatal error encountered for client {} ({}: {} [{}])'.format(
-                peername, command, reason, extargs))
+            logger.debug('Fatal error encountered for client %s (%s: %s [%r])',
+                         peername, command, reason, extargs)
 
         proto.error(command, reason, fatal, extargs)
 
@@ -112,14 +117,14 @@ class DCPServer:
                 # XXX not sure I like this proto_or_user hack
                 func(proto_or_user, line)
             except (UserError, GroupError) as e:
-                print('Possible bug hit', str(e))
+                logger.warn('Possible bug hit! (Exception below)')
+                traceback.print_exception(e)
                 self.error(proto_or_user, line.command, str(e), False)
             except Exception as e:
-                print('Uh oh! We got an error!')
+                logger.exception('Bug hit! (Exception below)')
                 self.error(proto_or_user, line.command, 'Internal server ' \
                            'error (this isn\'t your fault)')
-                raise e
-            
+ 
     def user_exit(self, user):
         if user is None:
             return
@@ -274,7 +279,6 @@ class DCPServer:
         total = str(len(self.motd))
 
         for i, block in enumerate(self.motd):
-            print(block)
             kval = {
                 'text' : block,
                 'multipart' : ['*'],
@@ -300,7 +304,7 @@ class DCPServer:
             return
 
         if target not in self.groups:
-            print('Creating group {}'.format(target))
+            logger.info('Creating group %s', target)
             self.groups[target] = Group(proto, target)
 
         group = self.groups[target]
@@ -351,12 +355,12 @@ class DCPProto(asyncio.Protocol):
 
     def connection_made(self, transport):
         peername = transport.get_extra_info('peername')
-        print('connection from {}'.format(peername))
+        logger.info('Connection from %s', peername)
         self.transport = transport
 
     def connection_lost(self, exc):
         peername = self.transport.get_extra_info('peername')
-        print('connection lost from {} (reason {})'.format(peername, exc))
+        logger.info('Connection lost from %s (reason %s)', peername, str(exc))
 
         self.server.user_exit(self.user)
 
@@ -376,8 +380,8 @@ class DCPProto(asyncio.Protocol):
         except ParserError as e:
             self.error('*', 'Parser failure', {'reason' : [str(e)]}, False)
         except Exception as e:
-            self.error('*', 'Internal server error')
-            print('Oops, exception happened', e)
+            logger.exception('Bug hit during processing! (Exception below)')
+            self.error('*', 'Internal server error (This isn\'t your fault)')
 
     @staticmethod
     def _proto_name(target):
@@ -427,12 +431,12 @@ ctx.options |= ssl.OP_NO_COMPRESSION
 loop = asyncio.get_event_loop()
 coro = loop.create_server(DCPProto, *listen, ssl=ctx)
 _server = loop.run_until_complete(coro)
-print('serving on {}'.format(_server.sockets[0].getsockname()))
+logger.info('Serving on %r', _server.sockets[0].getsockname())
 
 try:
     loop.run_forever()
 except KeyboardInterrupt:
-    print("exit")
+    logger.info('Exiting from ctrl-c')
 finally:
     _server.close()
     loop.close()
