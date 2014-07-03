@@ -22,9 +22,7 @@ This is DCP
 
 Welcome to DCP
 
-This is DCP
-
-Welcome
+This is DCP, welcome
 
 Yes
 
