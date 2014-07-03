@@ -66,8 +66,6 @@ class DCPServer:
         finally:
             if f: f.close()
 
-        print('motd loaded', self.motd)
-
         self.user_store = UserStorage()
 
     def error(self, dest, command, reason, fatal=True, extargs=None):
