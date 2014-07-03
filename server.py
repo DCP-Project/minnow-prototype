@@ -73,10 +73,13 @@ class DCPServer:
             try:
                 # XXX not sure I like this proto_or_user hack
                 func(proto_or_user, line)
+            except (UserError, GroupError) as e:
+                print('Possible bug hit', str(e))
+                self.error(proto_or_user, line.command, str(e), False)
             except Exception as e:
                 print('Uh oh! We got an error!')
                 self.error(proto_or_user, line.command, 'Internal server ' \
-                           'error')
+                           'error (this isn\'t your fault)')
                 raise e
             
     def user_exit(self, user):
@@ -137,7 +140,7 @@ class DCPServer:
         user.send(self, user, 'signon', kval)
 
     def cmd_register(self, proto, line) -> UNREG:
-        if self.servpass:
+        if self.servpass:0
             rservpass = line.kval.get('servpass', [None])[0]
             if rservpass != self.servpass:
                 self.error(proto, line.command, 'Bad server password')
