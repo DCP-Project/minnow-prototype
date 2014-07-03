@@ -6,6 +6,7 @@ import re
 
 from crypt import crypt, mksalt
 from hmac import compare_digest
+import ssl
 
 from user import DCPUser
 from group import DCPGroup
@@ -188,7 +189,7 @@ class DCPServer:
             self.error(user, line.command, 'No valid target', False)
             return
 
-        # Lookup the target... no groups yet
+        # Lookup the target...
         if target.startswith(('=', '&')):
             self.error(user, line.command, 'Cannot message servers yet, sorry',
                        False, {'target' : [target]})
@@ -338,8 +339,17 @@ class DCPProto(asyncio.Protocol):
         if fatal:
             self.transport.close()
 
+# Set up SSL context
+ctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+ctx.load_default_certs(ssl.Purpose.CLIENT_AUTH)
+ctx.load_cert_chain('cert.pem')
+ctx.options &= ~ssl.OP_ALL
+ctx.options |= ssl.OP_SINGLE_DH_USE | ssl.OP_SINGLE_ECDH_USE
+ctx.options |= (ssl.OP_NO_SSLv2 | ssl.OP_NO_SSLv3 | ssl.OP_NO_TLSv1 |
+                ssl.OP_NO_TLSv1_1)
+
 loop = asyncio.get_event_loop()
-coro = loop.create_server(DCPProto, *listen)
+coro = loop.create_server(DCPProto, *listen, ssl=ctx)
 _server = loop.run_until_complete(coro)
 print('serving on {}'.format(_server.sockets[0].getsockname()))
 

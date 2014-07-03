@@ -47,3 +47,6 @@ nosetests.xml
 users.db
 groups.db
 rosters.db
+
+# Ignore the certificate
+cert.pem
