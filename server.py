@@ -5,6 +5,7 @@ import asyncio
 import re
 
 from crypt import crypt, mksalt
+from hmac import compare_digest
 
 from user import DCPUser
 from group import DCPGroup
@@ -103,9 +104,8 @@ class DCPServer:
                        'the server', True, {'handle' : [name]})
             return
 
-        password = line.kval.get('password', ['*'])[0]
-        password = crypt(password, uinfo.hash)
-        if password != uinfo.hash:
+        password = crypt(line.kval.get('password', ['*'])[0], uinfo.hash)
+        if not compare_digest(password, uinfo.hash):
             self.error(proto, line.command, 'Invalid password')
             return
 
