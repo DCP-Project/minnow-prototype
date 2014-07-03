@@ -45,6 +45,7 @@ class DCPServer:
                     break
 
                 line = line.rstrip()
+                if not line: line = ' '
 
                 if len(line) > 200:
                     # Cap it for the love of god
