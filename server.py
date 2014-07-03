@@ -37,6 +37,11 @@ class DCPServer:
         elif hasattr(dest, 'error'):
             proto = dest
 
+        if fatal:
+            proto = getattr(dest, 'proto', dest)
+            print('Fatal error encountered for client {} ({}: {} [{}])'.format(
+                peername, command, reason, extargs))
+
         proto.error(command, reason, fatal, extargs)
 
     def process(self, proto, data):
