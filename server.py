@@ -310,7 +310,13 @@ class DCPProto(asyncio.Protocol):
                 self.__buf = data
                 return
 
-        server.process(self, data)
+        try:
+            server.process(self, data)
+        except ParserError as e:
+            self.error('*', 'Parser failure', {'reason' : [str(e)]})
+        except Exception as e:
+            self.error('*', 'Internal server error')
+            print('Oops, exception happened', e)
 
     @staticmethod
     def _proto_name(target):
