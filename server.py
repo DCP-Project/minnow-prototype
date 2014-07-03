@@ -109,7 +109,7 @@ class DCPServer:
         uinfo = self.user_store.get(name)
         if uinfo is None:
             self.error(proto, line.command, 'You are not registered with ' \
-                       'the server', True, {'handle' : [name]})
+                       'the server', False, {'handle' : [name]})
             return
 
         password = crypt(line.kval.get('password', ['*'])[0], uinfo.hash)
