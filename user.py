@@ -11,8 +11,12 @@ class User:
         self.gecos = gecos
         self.roster = roster
         self.options = options
+
         self.sessions = set()
         self.groups = set()
+
+        self.acl = set()
+        self.property = dict()
 
     def send(self, source, target, command, kval=None):
         if kval is None:
@@ -22,6 +26,15 @@ class User:
 
     def message(self, source, message):
         self.send(source, self, 'message', {'body' : message})
+
+    def has_property(self, property):
+        return property in self.property
+
+    def get_property(self, property):
+        return self.property[property]
+
+    def del_property(self, property):
+        self.property.pop(property, None)
 
     def __hash__(self):
         return hash((hash(self.name), hash(self.gecos)))

@@ -125,7 +125,7 @@ class DCPServer:
                 logger.exception('Bug hit! (Exception below)')
                 self.error(proto_or_user, line.command, 'Internal server ' \
                            'error (this isn\'t your fault)')
- 
+
     def user_exit(self, user):
         if user is None:
             return
@@ -383,7 +383,7 @@ class DCPProto(asyncio.Protocol):
 
     def __init__(self):
         self.__buf = b''
-        
+
         # Global state
         self.server = server
 

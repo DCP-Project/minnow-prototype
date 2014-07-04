@@ -7,15 +7,19 @@ from parser import MAXFRAME
 
 class Group:
     """ Like an IRC channel """
-    def __init__(self, name, topic=None, acl=None, ts=None):
+    def __init__(self, name, topic=None, acl=None, property=None, ts=None):
         self.name = name
         self.topic = topic
         self.acl = acl
+        self.property = property
         self.users = set()
         self.ts = None
 
         if self.acl is None:
-            self.acl = defaultdict(list) 
+            self.acl = defaultdict(list)
+
+        if self.property is None:
+            self.property = dict()
 
         if self.ts is None:
             self.ts = round(time.time())
@@ -80,7 +84,7 @@ class Group:
         kval = defaultdict(list)
         if not reason:
             reason = ['']
-        
+
         kval['reason'].append(reason)
 
         if permanent:
@@ -110,3 +114,11 @@ class Group:
 
             user.send(source, target, command, kval)
 
+    def has_property(self, property):
+        return property in self.property
+
+    def get_property(self, property):
+        return self.property[property]
+
+    def del_property(self, property):
+        self.property.pop(property, None)

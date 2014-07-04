@@ -43,7 +43,7 @@ class UserStorage:
 
         if groups is not None:
             user.groups = groups
-        
+
         with shelve.open(self.filename) as db:
             del db[handle]
             db[handle] = user
