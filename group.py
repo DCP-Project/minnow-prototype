@@ -98,7 +98,7 @@ class Group:
         kval = defaultdict(list)
         kval['body'] = message
 
-        self.send(self, source, 'message', kval, [source])
+        self.send(source, self, 'message', kval, [source])
 
     def send(self, source, target, command, kval=None, filter=[]):
         if not kval:
