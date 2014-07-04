@@ -22,18 +22,18 @@ from errors import *
 import parser
 
 @asyncio.coroutine
-def rdns_check(ip):
+def rdns_check(ip, future):
     loop = asyncio.get_event_loop()
     try:
         host = (yield from loop.getnameinfo((ip, 0), socket.NI_NUMERICSERV))[0]
         res = yield from loop.getaddrinfo(host, None, family=socket.AF_UNSPEC,
                                           type=socket.SOCK_STREAM,
                                           proto=socket.SOL_TCP)
-        return (host if ip in (x[4][0] for x in res) else ip)
+        future.set_result(host if ip in (x[4][0] for x in res) else ip)
     except Exception as e:
         logger.info('DNS resolver error')
         traceback.print_exc()
-        return ip
+        future.set_result(ip)
 
 logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
@@ -170,6 +170,11 @@ class DCPServer:
             'version': ['Minnow prototype server', 'v0.1-prealpha'],
             'options' : [],
         }
+
+        yield from proto.rdns
+        if proto.host != proto.peername[0]:
+            kval['host'] = [proto.host]
+
         user.send(self, user, 'signon', kval)
 
         # Send the MOTD
@@ -287,8 +292,8 @@ class DCPServer:
 
         options = line.kval.get('options', [])
 
-        self.user_enter(proto, name, uinfo.gecos, uinfo.acl, uinfo.property,
-                        options)
+        yield from self.user_enter(proto, name, uinfo.gecos, uinfo.acl,
+                                   uinfo.property, options)
 
     def cmd_register(self, proto, line) -> UNREG:
         if self.servpass:
@@ -318,7 +323,7 @@ class DCPServer:
 
         options = line.kval.get('options', [])
 
-        self.user_enter(proto, name, gecos, set(), set(), options)
+        yield from self.user_enter(proto, name, gecos, set(), set(), options)
 
     def cmd_fregister(self, user, line) -> SIGNON:
         if not user.has_acl('user:register'):
@@ -394,13 +399,6 @@ class DCPServer:
 
         if user.has_acl('user:auspex'):
             ip = user.proto.peername[0]
-
-            if not user.proto.host:
-                try:
-                    wait = asyncio.wait_for(rdns_check(ip), 5)
-                    user.proto.host = yield from wait
-                except Exception:
-                    user.proto.host = ip
 
             kval.update({
                 'acl' : sorted(user.acl),
@@ -516,13 +514,24 @@ class DCPProto(asyncio.Protocol):
 
         self.transport = None
 
-    
+        self.rdns = asyncio.Future()
+
+    def set_host(self, future):
+        logger.info('Host for %r set to [%s]', self.peername, future.result())
+        self.host = future.result()
 
     def connection_made(self, transport):
         self.peername = transport.get_extra_info('peername')
         logger.info('Connection from %s', self.peername)
 
+        self.host = self.peername[0]
+
         self.transport = transport
+
+        # Begin DNS lookup
+        self.rdns.add_done_callback(self.set_host)
+        dns = asyncio.wait_for(rdns_check(self.peername[0], self.rdns), 5)
+        asyncio.Task(dns)
 
         # Start the connection timeout
         loop = asyncio.get_event_loop()
