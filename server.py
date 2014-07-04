@@ -354,7 +354,7 @@ class DCPServer:
 
     def ping_timeout(self, user) -> SIGNON:
         if user.timeout:
-            logger.debug(user, 'User %s timed out', user.proto.pingname)
+            logger.debug(user, 'User %s timed out', user.proto.peername)
             self.error(user, 'ping', 'Ping timeout')
             return
 
@@ -394,8 +394,11 @@ class DCPProto(asyncio.Protocol):
         # Callbacks
         self.callbacks = dict()
 
+        # Peer name
+        self.peername = None
+
     def connection_made(self, transport):
-        peername = transport.get_extra_info('peername')
+        self.peername = transport.get_extra_info('peername')
         logger.info('Connection from %s', peername)
         self.transport = transport
 
