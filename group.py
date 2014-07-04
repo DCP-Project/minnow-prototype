@@ -7,8 +7,7 @@ from parser import MAXFRAME
 
 class Group:
     """ Like an IRC channel """
-    def __init__(self, proto, name, topic=None, acl=None, ts=None):
-        self.proto = proto
+    def __init__(self, name, topic=None, acl=None, ts=None):
         self.name = name
         self.topic = topic
         self.acl = acl

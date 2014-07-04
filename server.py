@@ -318,7 +318,7 @@ class DCPServer:
 
         if target not in self.groups:
             logger.info('Creating group %s', target)
-            self.groups[target] = Group(proto, target)
+            self.groups[target] = Group(target)
 
         group = self.groups[target]
         if group in user.groups:
