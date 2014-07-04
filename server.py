@@ -214,6 +214,11 @@ class DCPServer:
                 self.error(proto, line.command, 'Bad server password')
                 return
 
+        if not allow_register:
+            self.error(proto, line.command, 'Direct registrations are not ' \
+                       'permitted on this server')
+            return
+
         name = line.kval.get('handle', [None])[0]
         if name is None:
             self.error(proto, line.command, 'No handle')
