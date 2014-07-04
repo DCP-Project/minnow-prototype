@@ -143,7 +143,7 @@ class DCPServer:
         user.send(self, user, 'signon', kval)
 
         # Send the MOTD
-        self.cmd_motd(user, line)
+        self.user_motd(user)
 
         # Ping timeout stuff
         user.timeout = False
@@ -198,6 +198,22 @@ class DCPServer:
         self.user_store.add(name, password, gecos, set())
 
         return True
+
+    def user_motd(self, user): 
+        if not self.motd:
+            user.send(self, user, 'motd', {})
+            return
+
+        total = str(len(self.motd))
+
+        for i, block in enumerate(self.motd):
+            kval = {
+                'text' : block,
+                'multipart' : ['*'],
+                'part' : [str(i + 1)],
+                'total' : [total],
+            }
+            user.send(self, user, 'motd', kval)
 
     def cmd_signon(self, proto, line) -> UNREG:
         if self.servpass:
@@ -327,20 +343,7 @@ class DCPServer:
         target.message(user, message)
 
     def cmd_motd(self, user, line) -> SIGNON:
-        if not self.motd:
-            user.send(self, user, 'motd', {})
-            return
-
-        total = str(len(self.motd))
-
-        for i, block in enumerate(self.motd):
-            kval = {
-                'text' : block,
-                'multipart' : ['*'],
-                'part' : [str(i + 1)],
-                'total' : [total],
-            }
-            user.send(self, user, 'motd', kval)
+        self.user_motd(user)
 
     def cmd_whois(self, user, line) -> SIGNON:
         target = line.target
