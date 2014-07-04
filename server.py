@@ -142,7 +142,6 @@ class DCPServer:
                 try:
                     func = self._get_func(proto, line)
                     if not func: continue
-                    print(func)
                     res = func(proto_or_user, line)
                     if (isinstance(res, asyncio.Future) or
                         inspect.isgenerator(res)):
@@ -376,7 +375,6 @@ class DCPServer:
         self.user_motd(user)
 
     def cmd_whois(self, user, line) -> SIGNON:
-        print(user.acl)
         target = line.target
         if target == '*' or target.startswith(('=', '#')):
             self.error(user, line.command, 'No valid target', False)
@@ -397,12 +395,10 @@ class DCPServer:
             ip = user.proto.peername[0]
 
             if not user.proto.host:
-                user.proto.host = '*'
                 try:
                     user.proto.host = yield from rdns_check(ip)
                 except Exception:
-                    print("blast")
-                    user.proto.host = '*'
+                    user.proto.host = ip
 
             kval.update({
                 'acl' : sorted(user.acl),
