@@ -126,6 +126,29 @@ class DCPServer:
                 self.error(proto_or_user, line.command, 'Internal server ' \
                            'error (this isn\'t your fault)')
 
+    def user_enter(self, proto, name, gecos, acls, properties, options):
+        user = User(proto, name, gecos, acls, properties, options)
+        proto.user = self.users[name] = user
+
+        # Cancel the timeout
+        proto.callbacks['signon'].cancel()
+        del proto.callbacks['signon']
+
+        kval = {
+            'name' : [self.name],
+            'time' : [str(round(time.time()))],
+            'version': ['Minnow prototype server', 'v0.1-prealpha'],
+            'options' : [],
+        }
+        user.send(self, user, 'signon', kval)
+
+        # Send the MOTD
+        self.cmd_motd(user, line)
+
+        # Ping timeout stuff
+        user.timeout = False
+        self.ping_timeout(user)
+
     def user_exit(self, user):
         if user is None:
             return
@@ -140,6 +163,12 @@ class DCPServer:
             cb.cancel()
 
     def cmd_signon(self, proto, line) -> UNREG:
+        if self.servpass:
+            rservpass = line.kval.get('servpass', [None])[0]
+            if rservpass != self.servpass:
+                self.error(proto, line.command, 'Bad server password')
+                return
+
         name = line.kval.get('handle', [None])[0]
         if name is None:
             self.error(proto, line.command, 'No handle')
@@ -175,27 +204,8 @@ class DCPServer:
 
         options = line.kval.get('options', [])
 
-        user = User(proto, name, uinfo.gecos, set(), options)
-        proto.user = self.users[name] = user
-
-        # Cancel the timeout
-        proto.callbacks['signon'].cancel()
-        del proto.callbacks['signon']
-
-        kval = {
-            'name' : [self.name],
-            'time' : [str(round(time.time()))],
-            'version': ['Minnow prototype server', 'v0.1-prealpha'],
-            'options' : [],
-        }
-        user.send(self, user, 'signon', kval)
-
-        # Send the MOTD
-        self.cmd_motd(user, line)
-
-        # Ping timeout stuff
-        user.timeout = False
-        self.ping_timeout(user)
+        self.user_enter(proto, name, uinfo.gecos, uinfo.acls, uinfo.properties,
+                        options)
 
     def cmd_register(self, proto, line) -> UNREG:
         if self.servpass:
@@ -248,7 +258,9 @@ class DCPServer:
         }
         proto.send(self, None, line.command, kval)
 
-        self.cmd_signon(proto, line)
+        options = line.kval.get('options', [])
+
+        self.user_enter(proto, name, gecos, set(), set(), options)
 
     def cmd_message(self, user, line) -> SIGNON:
         proto = user.proto

@@ -14,3 +14,6 @@ servpass = None
 
 # Debug level (set to debug, please)
 log_level = logging.DEBUG
+
+# Allow registrations
+allow_register = True
