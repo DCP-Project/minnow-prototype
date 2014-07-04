@@ -354,7 +354,7 @@ class DCPServer:
 
     def ping_timeout(self, user) -> SIGNON:
         if user.timeout:
-            self.debug(user, 'User %s timed out', user.proto.pingname)
+            logger.debug(user, 'User %s timed out', user.proto.pingname)
             self.error(user, 'ping', 'Ping timeout')
             return
 
