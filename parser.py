@@ -1,3 +1,5 @@
+import json
+
 from collections import defaultdict
 from itertools import islice
 
@@ -5,13 +7,14 @@ from errors import *
 
 MAXFRAME = 1370
 
-class Frame:
+class BaseFrame:
     def __init__(self, source, target, command, kval):
         self.source = source
         self.target = target
         self.command = command
         self.kval = kval
 
+class Frame(BaseFrame):
     @classmethod
     def parse(cls, text):
         lines = text.split(b'\0\0')
@@ -111,3 +114,72 @@ class Frame:
         return fmtstr.format(self.source, self.target, self.command, self.kval)
 
 
+class JSONFrame(BaseFrame):
+    @classmethod
+    def parse(cls, text):
+        lines = text.split(b'\0')
+        if lines[-1] != b'':
+            raise ParserIncompleteError('Incomplete frame')
+
+        del lines[-1]
+
+        retlines = []
+        for line in lines:
+            if len(line) < 10:
+                raise ParserSizeError('Frame is too small')
+
+            # XXX there is a disparity between JSON and our frames...
+            # I'm not sure how to reconcile it
+            if len(line) > MAXFRAME + 20:
+                raise ParserSizeError('Frame is too large')
+
+            line = line.decode('utf-8', 'replace')
+
+            try:
+                load = json.loads(line)
+            except Exception as e:
+                raise ParserSizeError(str(e))
+
+            try:
+                header = load[0]
+
+                source = header['source']
+                target = header['target']
+                command = header['command']
+            except Exception as e:
+                raise ParserInvalidError('Bad JSON frame header')
+
+            try:
+                kval = defaultdict(list, (load[1] if len(load) > 1 else {}))
+                for key, val in kval:
+                    if not isinstance(val, list):
+                        # Validate the values
+                        raise ParserInvalidError('Bad value')
+
+                    for val2 in val:
+                        # Validate all values of the values
+                        if not isinstance(val, str):
+                            raise ParserInvalidError('Bad value')
+            except Exception as e:
+                raise ParserInvalidError('Bad JSON frame key/values')
+
+            retlines.append(cls(source, target, command, kval))
+
+        return retlines
+
+    def __bytes__(self):
+        header = {
+            'source' : self.source,
+            'target' : self.target,
+            'command' : self.command
+        }
+        dump = (header, self.kval)
+
+        return (json.dumps(dump) + '\0').encode('utf-8', 'ignore')
+
+    def __len__(self):
+        return len(bytes(self))
+
+    def __repr__(self):
+        fmtstr = 'JSONFrame(source={}, target={}, command={}, kval={})'
+        return fmtstr.format(self.source, self.target, self.command, self.kval)
