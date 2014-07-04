@@ -5,18 +5,17 @@ class Roster:
     pass
 
 class User:
-    def __init__(self, proto, name, gecos, roster, options):
+    def __init__(self, proto, name, gecos, acl, property, roster, options):
         self.proto = proto
         self.name = name
         self.gecos = gecos
+        self.acl = acl
+        self.property = property
         self.roster = roster
         self.options = options
 
         self.sessions = set()
         self.groups = set()
-
-        self.acl = set()
-        self.property = dict()
 
     def send(self, source, target, command, kval=None):
         if kval is None:

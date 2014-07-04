@@ -19,12 +19,12 @@ with shelve.open('users.db') as db:
 
     for acl in acl_list:
         acl = acl.lower()
-        if acl in user.acls:
+        if acl in user.acl:
             print("Deactivating ACL {}".format(acl))
-            user.acls.remove(acl)
+            user.acl.remove(acl)
         else:
             print("Activating ACL {}".format(acl))
-            user.acls.add(acl)
+            user.acl.add(acl)
 
     db[username] = user
 

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 import time
-import asyncio
+import asyncio, socket
 import re
+import inspect
+from collections import deque
 
 from random import randint
 
@@ -10,6 +12,7 @@ from crypt import crypt, mksalt
 from hmac import compare_digest
 import ssl
 import logging
+import traceback
 
 from user import User
 from group import Group
@@ -17,6 +20,20 @@ from storage import UserStorage
 from config import *
 from errors import *
 import parser
+
+@asyncio.coroutine
+def rdns_check(ip):
+    loop = asyncio.get_event_loop()
+    try:
+        host = (yield from loop.getnameinfo((ip, 0), socket.NI_NUMERICSERV))[0]
+        res = yield from loop.getaddrinfo(host, None, family=socket.AF_UNSPEC,
+                                          type=socket.SOCK_STREAM,
+                                          proto=socket.SOL_TCP)
+        return (host if ip in (x[4][0] for x in res) else ip)
+    except Exception as e:
+        logger.info('DNS resolver error')
+        traceback.print_exc()
+        return ip
 
 logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
@@ -76,6 +93,10 @@ class DCPServer:
 
         self.user_store = UserStorage()
 
+        self.line_queue = deque()
+
+        asyncio.Task(self.process())
+
     def error(self, dest, command, reason, fatal=True, extargs=None):
         if hasattr(dest, 'proto'):
             proto = dest.proto
@@ -89,45 +110,54 @@ class DCPServer:
 
         proto.error(command, reason, fatal, extargs)
 
-    def process(self, proto, data):
-        # Turn a protocol into a user
-        for line in parser.Frame.parse(data):
-            command = line.command.replace('-', '_')
-            func = getattr(self, 'cmd_' + command, None)
-            if func is None:
-                self.error(proto, line.command, 'No such command', False)
+    def _get_func(self, proto, line):
+        command = line.command.replace('-', '_')
+        func = getattr(self, 'cmd_' + command, None)
+        if func is None:
+            self.error(proto, line.command, 'No such command', False)
+            return
+
+        req = func.__annotations__.get('return', SIGNON)
+        if req & SIGNON:
+            if not proto.user:
+                self.error(proto, line.command, 'You are not registered',
+                            False)
+                return
+        elif req & UNREG:
+            if proto.user:
+                self.error(proto, line.command, 'This command is only ' \
+                            'usable before registration', False)
                 return
 
-            req = func.__annotations__.get('return', SIGNON)
-            if req & SIGNON:
-                if not proto.user:
-                    self.error(proto, line.command, 'You are not registered',
-                               False)
-                    return
+        return func
 
-                proto_or_user = proto.user
-            elif req & UNREG:
-                if proto.user:
-                    self.error(proto, line.command, 'This command is only ' \
-                               'usable before registration', False)
-                    return
+    @asyncio.coroutine
+    def process(self):
+        while True:
+            self.waiter = asyncio.Future()
+            yield from self.waiter
+            while len(self.line_queue):
+                proto, line = self.line_queue.popleft()
+                proto_or_user = (proto.user if proto.user else proto)
+                try:
+                    func = self._get_func(proto, line)
+                    if not func: continue
+                    print(func)
+                    res = func(proto_or_user, line)
+                    if (isinstance(res, asyncio.Future) or
+                        inspect.isgenerator(res)):
+                        yield from res
+                except (UserError, GroupError) as e:
+                    logger.warn('Possible bug hit! (Exception below)')
+                    traceback.print_exc()
+                    self.error(proto, line.command, str(e), False)
+                except Exception as e:
+                    logger.exception('Bug hit! (Exception below)')
+                    self.error(proto, line.command, 'Internal server ' \
+                            'error (this isn\'t your fault)')
 
-                proto_or_user = proto
-
-            try:
-                # XXX not sure I like this proto_or_user hack
-                func(proto_or_user, line)
-            except (UserError, GroupError) as e:
-                logger.warn('Possible bug hit! (Exception below)')
-                traceback.print_exception(e)
-                self.error(proto_or_user, line.command, str(e), False)
-            except Exception as e:
-                logger.exception('Bug hit! (Exception below)')
-                self.error(proto_or_user, line.command, 'Internal server ' \
-                           'error (this isn\'t your fault)')
-
-    def user_enter(self, proto, name, gecos, acls, properties, options):
-        user = User(proto, name, gecos, acls, properties, options)
+    def user_enter(self, proto, name, gecos, acl, property, options):
+        user = User(proto, name, gecos, acl, property, set(), options)
         proto.user = self.users[name] = user
 
         # Cancel the timeout
@@ -257,7 +287,7 @@ class DCPServer:
 
         options = line.kval.get('options', [])
 
-        self.user_enter(proto, name, uinfo.gecos, uinfo.acls, uinfo.properties,
+        self.user_enter(proto, name, uinfo.gecos, uinfo.acl, uinfo.property,
                         options)
 
     def cmd_register(self, proto, line) -> UNREG:
@@ -346,6 +376,7 @@ class DCPServer:
         self.user_motd(user)
 
     def cmd_whois(self, user, line) -> SIGNON:
+        print(user.acl)
         target = line.target
         if target == '*' or target.startswith(('=', '#')):
             self.error(user, line.command, 'No valid target', False)
@@ -363,7 +394,21 @@ class DCPServer:
         }
 
         if user.has_acl('user:auspex'):
-            kval['acl'] = sorted(user.acl)
+            ip = user.proto.peername[0]
+
+            if not user.proto.host:
+                user.proto.host = '*'
+                try:
+                    user.proto.host = yield from rdns_check(ip)
+                except Exception:
+                    print("blast")
+                    user.proto.host = '*'
+
+            kval.update({
+                'acl' : sorted(user.acl),
+                'ip' : [ip],
+                'host' : [user.proto.host],
+            })
 
         if user.groups:
             kval['groups'] = [group for group in user.groups if not 
@@ -468,10 +513,12 @@ class DCPProto(asyncio.Protocol):
         # Callbacks
         self.callbacks = dict()
 
-        # Peer name
         self.peername = None
+        self.host = None
 
         self.transport = None
+
+    
 
     def connection_made(self, transport):
         self.peername = transport.get_extra_info('peername')
@@ -501,12 +548,13 @@ class DCPProto(asyncio.Protocol):
                 return
 
         try:
-            server.process(self, data)
+            for line in parser.Frame.parse(data):
+                server.line_queue.append((self, line))
         except ParserError as e:
             self.error('*', 'Parser failure', {'reason' : [str(e)]}, False)
-        except Exception as e:
-            logger.exception('Bug hit during processing! (Exception below)')
-            self.error('*', 'Internal server error (This isn\'t your fault)')
+
+        if not server.waiter.done():
+            server.waiter.set_result(None)
 
     @staticmethod
     def _proto_name(target):

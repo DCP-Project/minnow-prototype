@@ -2,14 +2,18 @@ import time
 import shelve
 
 class DCPStoredUser:
+    version = 1
+
     def __init__(self, ts, hash, gecos, groups):
         self.ts = ts
         self.hash = hash
         self.gecos = gecos
         self.groups = groups
 
-        # Reserved
-        self.acls = set()
+        self.acl = set()
+        self.property = set()
+        self.roster = set()
+
 
 class UserStorage:
     def __init__(self, filename='users.db'):
