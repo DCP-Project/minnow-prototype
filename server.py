@@ -162,6 +162,43 @@ class DCPServer:
         for cb in user.proto.callbacks.values():
             cb.cancel()
 
+    def user_register(self, proto, name, gecos, password):
+        if name is None:
+            self.error(proto, line.command, 'No handle', False)
+            return False
+
+        if valid_handle.match(name) is None:
+            self.error(proto, line.command, 'Invalid handle', False,
+                       {'handle' : [name]})
+            return False
+
+        if len(name) > 48:
+            self.error(proto, line.command, 'Handle is too long', False,
+                       {'handle' : [name]})
+            return False
+
+        if self.user_store.get(name) is not None:
+            self.error(proto, line.command, 'Handle already registered', False,
+                       {'handle' : [name]})
+            return False
+
+        if len(gecos) > 48:
+            self.error(proto, line.command, 'GECOS is too long', False,
+                       {'gecos' : [gecos]})
+            return False
+
+        if password is None or len(password) < 5:
+            # Password is not sent back for security reasons
+            self.error(proto, line.command, 'Bad password', False)
+            return False
+
+        password = crypt(password, mksalt())
+
+        # Bang
+        self.user_store.add(name, password, gecos, set())
+
+        return True
+
     def cmd_signon(self, proto, line) -> UNREG:
         if self.servpass:
             rservpass = line.kval.get('servpass', [None])[0]
@@ -220,41 +257,11 @@ class DCPServer:
             return
 
         name = line.kval.get('handle', [None])[0]
-        if name is None:
-            self.error(proto, line.command, 'No handle')
-            return
-
-        if valid_handle.match(name) is None:
-            self.error(proto, line.command, 'Invalid handle', False,
-                       {'handle' : [name]})
-            return
-
-        if len(name) > 48:
-            self.error(proto, line.command, 'Handle is too long', False,
-                       {'handle' : [name]})
-            return
-
-        if self.user_store.get(name) is not None:
-            self.error(proto, line.command, 'Handle already registered', False,
-                       {'handle' : [name]})
-            return
-
         gecos = line.kval.get('gecos', [name])[0]
-        if len(gecos) > 48:
-            self.error(proto, line.command, 'GECOS is too long', False,
-                       {'gecos' : [gecos]})
-            return
-
         password = line.kval.get('password', [None])[0]
-        if password is None or len(password) < 5:
-            # Password is not sent back for security reasons
-            self.error(proto, line.command, 'Bad password', False)
+
+        if not self.user_register(proto, name, gecos, password):
             return
-
-        password = crypt(password, mksalt())
-
-        # Bang
-        self.user_store.add(name, password, gecos, set())
 
         kval = {
             'handle' : [name],
@@ -266,6 +273,25 @@ class DCPServer:
         options = line.kval.get('options', [])
 
         self.user_enter(proto, name, gecos, set(), set(), options)
+
+    def cmd_fregister(self, user, line) -> SIGNON:
+        if not user.has_acl('user:register'):
+            self.error(user, line.command, 'No permission', False)
+            return
+
+        name = line.kval.get('handle', [None])[0]
+        gecos = line.kval.get('gecos', [name])[0]
+        password = line.kval.get('password', [None])[0]
+
+        if not self.user_register(user, name, gecos, password):
+            return
+
+        kval = {
+            'handle' : [name],
+            'gecos' : [gecos],
+            'message' : ['Registration successful'],
+        }
+        proto.send(self, None, line.command, kval)
 
     def cmd_message(self, user, line) -> SIGNON:
         proto = user.proto
