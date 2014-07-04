@@ -114,11 +114,23 @@ class Group:
 
             user.send(source, target, command, kval)
 
+    def has_acl(self, acl):
+        return acl in self.acl
+
+    def set_acl(self, acl):
+        self.acl.add(acl)
+
+    def del_acl(self, acl):
+        self.acl.discard(acl)
+
     def has_property(self, property):
         return property in self.property
 
     def get_property(self, property):
         return self.property[property]
+
+    def set_property(self, property, value=None):
+        self.property[property] = value
 
     def del_property(self, property):
         self.property.pop(property, None)
