@@ -397,9 +397,12 @@ class DCPProto(asyncio.Protocol):
         # Peer name
         self.peername = None
 
+        self.transport = None
+
     def connection_made(self, transport):
         self.peername = transport.get_extra_info('peername')
-        logger.info('Connection from %s', peername)
+        logger.info('Connection from %s', self.peername)
+
         self.transport = transport
 
         # Start the connection timeout
@@ -408,8 +411,9 @@ class DCPProto(asyncio.Protocol):
         self.callbacks['signon'] = cb
 
     def connection_lost(self, exc):
-        peername = self.transport.get_extra_info('peername')
-        logger.info('Connection lost from %s (reason %s)', peername, str(exc))
+        if self.transport:
+            peername = self.transport.get_extra_info('peername')
+            logger.info('Connection lost from %s (reason %s)', peername, str(exc))
 
         self.server.user_exit(self.user)
 
