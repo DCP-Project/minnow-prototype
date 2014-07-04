@@ -299,6 +299,35 @@ class DCPServer:
             }
             user.send(self, user, 'motd', kval)
 
+    def cmd_whois(self, user, line) -> SIGNON:
+        target = line.target
+        if target == '*' or target.startswith(('=', '#')):
+            self.error(user, line.command, 'No valid target', False)
+            return
+
+        if target not in self.users:
+            self.error(user, line.command, 'No such user', False)
+            return
+
+        user = self.users[target]
+
+        kval = {
+            'handle' : [user.name],
+            'gecos' : [user.gecos],
+        }
+
+        if user.has_acl('user:auspex'):
+            kval['acl'] = sorted(user.acl)
+
+        if user.groups:
+            kval['groups'] = [group for group in user.groups if not 
+                              (group.has_property('private') and not
+                               user.has_acl('user:auspex'))]
+
+        # FIXME - if WHOIS info is too big, split it up
+        
+        user.send(self, user, 'whois', kval)
+
     def cmd_group_enter(self, user, line) -> SIGNON:
         target = line.target
         if target == '*':
