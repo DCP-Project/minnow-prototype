@@ -4,6 +4,8 @@ import time
 import asyncio
 import re
 
+from random import randint
+
 from crypt import crypt, mksalt
 from hmac import compare_digest
 import ssl
@@ -135,6 +137,9 @@ class DCPServer:
             # Part them from all groups
             group.member_del(user, permanent=True)
 
+        for cb in user.proto.callbacks.values():
+            cb.cancel()
+
     def cmd_signon(self, proto, line) -> UNREG:
         name = line.kval.get('handle', [None])[0]
         if name is None:
@@ -174,6 +179,10 @@ class DCPServer:
         user = User(proto, name, uinfo.gecos, set(), options)
         proto.user = self.users[name] = user
 
+        # Cancel the timeout
+        proto.callbacks['signon'].cancel()
+        del proto.callbacks['signon']
+
         kval = {
             'name' : [self.name],
             'time' : [str(round(time.time()))],
@@ -184,6 +193,10 @@ class DCPServer:
 
         # Send the MOTD
         self.cmd_motd(user, line)
+
+        # Ping timeout stuff
+        user.timeout = False
+        self.ping_timeout(user)
 
     def cmd_register(self, proto, line) -> UNREG:
         if self.servpass:
@@ -336,6 +349,31 @@ class DCPServer:
 
         group.member_del(user, line.kval.get('reason', ['']))
 
+    def cmd_pong(self, user, line) -> SIGNON:
+        user.timeout = False
+
+    def ping_timeout(self, user) -> SIGNON:
+        if user.timeout:
+            self.debug(user, 'User %s timed out', user.proto.pingname)
+            self.error(user, 'ping', 'Ping timeout')
+            return
+
+        user.send(self, user, 'ping', {'time' : [str(round(time.time()))]})
+
+        user.timeout = True
+
+        loop = asyncio.get_event_loop()
+        sched = randint(4500, 6000) / 100
+        cb = loop.call_later(sched, self.ping_timeout, user)
+        user.proto.callbacks['ping'] = cb
+
+    def conn_timeout(self, proto) -> UNREG:
+        if proto.user:
+            proto.callbacks.pop('signon', None)
+            return
+
+        self.error(proto, '*', 'Timed out')
+
 server = DCPServer(servname)
 
 class DCPProto(asyncio.Protocol):
@@ -353,10 +391,18 @@ class DCPProto(asyncio.Protocol):
         # User state
         self.user = None
 
+        # Callbacks
+        self.callbacks = dict()
+
     def connection_made(self, transport):
         peername = transport.get_extra_info('peername')
         logger.info('Connection from %s', peername)
         self.transport = transport
+
+        # Start the connection timeout
+        loop = asyncio.get_event_loop()
+        cb = loop.call_later(60, self.server.conn_timeout, self)
+        self.callbacks['signon'] = cb
 
     def connection_lost(self, exc):
         peername = self.transport.get_extra_info('peername')
@@ -434,6 +480,7 @@ _server = loop.run_until_complete(coro)
 logger.info('Serving on %r', _server.sockets[0].getsockname())
 
 try:
+    print(loop)
     loop.run_forever()
 except KeyboardInterrupt:
     logger.info('Exiting from ctrl-c')
