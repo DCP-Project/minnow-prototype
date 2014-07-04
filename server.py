@@ -468,6 +468,7 @@ class DCPServer:
 
     def conn_timeout(self, proto) -> UNREG:
         if proto.user:
+            # They've signed on
             proto.callbacks.pop('signon', None)
             return
 
