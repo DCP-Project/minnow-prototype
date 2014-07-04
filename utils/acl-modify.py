@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from os import chdir
 from sys import argv, stderr
 import shelve
 from storage import UserStorage
@@ -7,6 +8,8 @@ from storage import UserStorage
 if len(argv) < 3:
     print("Usage: {} username acl [...]".format(argv[0]), file=stderr)
     quit(1)
+
+os.chdir('..')
 
 username = argv[1]
 acl_list = argv[2:]
