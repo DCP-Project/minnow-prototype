@@ -15,43 +15,63 @@ class DCPStoredUser:
         self.roster = set()
 
 
-class UserStorage:
-    def __init__(self, filename='users.db'):
+class DCPStoredGroup:
+    version = 1
+
+    def __init__(self, ts):
+        self.ts = ts
+
+        self.acl = set()
+        self.property = set()
+        self.topic = None
+
+
+class BaseStorage:
+    def __init__(self, filename, cls):
         self.filename = filename
+        self.cls = cls
 
-    def get(self, handle):
+    def get(self, key):
         with shelve.open(self.filename) as db:
-            user = db.get(handle, None)
+            item = db.get(key, None)
 
-        return user
+        return item
 
-    def add(self, handle, hash, gecos, groups):
-        user = DCPStoredUser(round(time.time()), hash, gecos, groups)
+    def add(self, key, *args, **kwargs):
+        item = self.cls(*args, **kwargs)
         with shelve.open(self.filename) as db:
-            db[handle] = user
+            db[key] = item
 
-    def modify(self, handle, *, hash=None, gecos=None, groups=None):
-        assert all(x for x in (hash, gecos, groups))
-
+    def modify(self, key, **kwargs):
         with shelve.open(self.filename) as db:
-            user = db.get(handle, None)
+            item = db.get(key, None)
 
-        if user is None:
+        if item is None:
             return
 
-        if hash is not None:
-            user.hash = hash
-
-        if gecos is not None:
-            user.gecos = gecos
-
-        if groups is not None:
-            user.groups = groups
+        for k, v in kwargs.items():
+            setattr(item, k, v)
 
         with shelve.open(self.filename) as db:
-            del db[handle]
-            db[handle] = user
+            db[key] = item
 
-    def delete(self, handle):
+    def delete(self, key):
         with shelve.open(self.filename) as db:
-            del db[handle]
+            db.pop(key, None)
+
+
+class UserStorage(BaseStorage):
+    def __init__(self, filename='users.db'):
+        super().__init__(filename, DCPStoredUser)
+
+    def add(self, key, *args, **kwargs):
+        args = [round(time.time())].extend(args)
+        super().add(key, *args, **kwargs)
+
+class GroupStorage(BaseStorage):
+    def __init__(self, filename='groups.db'):
+        super().__init__(filename, DCPStoredGroup)
+
+    def add(self, key, *args, **kwargs):
+        args = [round(time.time())].extend(args)
+        super().add(key, *args, **kwargs)
