@@ -480,7 +480,6 @@ _server = loop.run_until_complete(coro)
 logger.info('Serving on %r', _server.sockets[0].getsockname())
 
 try:
-    print(loop)
     loop.run_forever()
 except KeyboardInterrupt:
     logger.info('Exiting from ctrl-c')
