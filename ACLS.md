@@ -18,7 +18,7 @@ Here are a list of ACL's supported by minnow and what they do
 |-----------------|-----------------------------------------------------------------|
 | user:ban        | Can ban IP addresses, usernames, and accounts from the server   |
 
-# Group ACL's
+## Group ACL's
 | ACL             | Function                                                        |
 |-----------------|-----------------------------------------------------------------|
 | group:auspex    | Inspect group information without being present (even when the  |
