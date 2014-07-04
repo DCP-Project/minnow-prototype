@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 import time
-import asyncio, socket
+import asyncio
 import re
 import inspect
 from collections import deque
+from functools import partial
 
 from random import randint
 
@@ -14,26 +15,13 @@ import ssl
 import logging
 import traceback
 
+from proto import DCPProto
 from user import User
 from group import Group
-from storage import UserStorage
+from storage import UserStorage, GroupStorage
 from config import *
 from errors import *
 import parser
-
-@asyncio.coroutine
-def rdns_check(ip, future):
-    loop = asyncio.get_event_loop()
-    try:
-        host = (yield from loop.getnameinfo((ip, 0), socket.NI_NUMERICSERV))[0]
-        res = yield from loop.getaddrinfo(host, None, family=socket.AF_UNSPEC,
-                                          type=socket.SOCK_STREAM,
-                                          proto=socket.SOL_TCP)
-        future.set_result(host if ip in (x[4][0] for x in res) else ip)
-    except Exception as e:
-        logger.info('DNS resolver error')
-        traceback.print_exc()
-        future.set_result(ip)
 
 logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
@@ -234,7 +222,7 @@ class DCPServer:
 
         return True
 
-    def user_motd(self, user): 
+    def user_motd(self, user):
         if not self.motd:
             user.send(self, user, 'motd', {})
             return
@@ -407,12 +395,12 @@ class DCPServer:
             })
 
         if user.groups:
-            kval['groups'] = [group for group in user.groups if not 
+            kval['groups'] = [group for group in user.groups if not
                               (group.has_property('private') and not
                                user.has_acl('user:auspex'))]
 
         # FIXME - if WHOIS info is too big, split it up
-        
+
         user.send(self, user, 'whois', kval)
 
     def cmd_group_enter(self, user, line) -> SIGNON:
@@ -489,134 +477,30 @@ class DCPServer:
 
         self.error(proto, '*', 'Timed out')
 
-server = DCPServer(servname)
-
-class DCPProto(asyncio.Protocol):
-    """ This is the asyncio connection stuff...
-
-    Everything should just call back to the main server/user stuff here.
-    """
-
-    def __init__(self):
-        self.__buf = b''
-
-        # Global state
-        self.server = server
-
-        # User state
-        self.user = None
-
-        # Callbacks
-        self.callbacks = dict()
-
-        self.peername = None
-        self.host = None
-
-        self.transport = None
-
-        self.rdns = asyncio.Future()
-
-    def set_host(self, future):
-        logger.info('Host for %r set to [%s]', self.peername, future.result())
-        self.host = future.result()
-
-    def connection_made(self, transport):
-        self.peername = transport.get_extra_info('peername')
-        logger.info('Connection from %s', self.peername)
-
-        self.host = self.peername[0]
-
-        self.transport = transport
-
-        # Begin DNS lookup
-        self.rdns.add_done_callback(self.set_host)
-        dns = asyncio.wait_for(rdns_check(self.peername[0], self.rdns), 5)
-        asyncio.Task(dns)
-
-        # Start the connection timeout
-        loop = asyncio.get_event_loop()
-        cb = loop.call_later(60, self.server.conn_timeout, self)
-        self.callbacks['signon'] = cb
-
-    def connection_lost(self, exc):
-        logger.info('Connection lost from %r (reason %s)', self.peername, str(exc))
-
-        self.server.user_exit(self.user)
-
-    def data_received(self, data):
-        data = self.__buf + data
-
-        if not data.endswith(b'\x00\x00'):
-            data, sep, self.__buf = data.rpartition(b'\x00\x00')
-            if sep:
-                data += sep
-            else:
-                self.__buf = data
-                return
-
-        try:
-            for line in parser.Frame.parse(data):
-                server.line_queue.append((self, line))
-        except ParserError as e:
-            self.error('*', 'Parser failure', {'reason' : [str(e)]}, False)
-
-        if not server.waiter.done():
-            server.waiter.set_result(None)
-
-    @staticmethod
-    def _proto_name(target):
-        if isinstance(target, (User, Group, DCPProto)):
-            # XXX for now # is implicit with Group.
-            # this is subject to change
-            return target.name
-        elif isinstance(target, DCPServer):
-            return '=' + server.name
-        elif target is None:
-            return '*'
-        else:
-            return '&' + getattr(target, 'name', target)
-
-    def send(self, source, target, command, kval=None):
-        source = self._proto_name(source)
-        target = self._proto_name(target)
-        if kval is None: kval = dict()
-
-        frame = parser.Frame(source, target, command, kval)
-        self.transport.write(bytes(frame))
-
-    def error(self, command, reason, fatal=True, extargs=None):
-        kval = {
-            'command' : [command],
-            'reason' : [reason],
-        }
-        if extargs:
-            kval.update(extargs)
-
-        self.send(self.server, self.user, 'error', kval)
-
-        if fatal:
-            self.transport.close()
 
 # Set up SSL context
 ctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 ctx.load_default_certs(ssl.Purpose.CLIENT_AUTH)
 ctx.load_cert_chain('cert.pem')
 
+# SSL options
 ctx.options &= ~ssl.OP_ALL
 ctx.options |= ssl.OP_SINGLE_DH_USE | ssl.OP_SINGLE_ECDH_USE
 ctx.options |= (ssl.OP_NO_SSLv2 | ssl.OP_NO_SSLv3 | ssl.OP_NO_TLSv1 |
                 ssl.OP_NO_TLSv1_1)
 ctx.options |= ssl.OP_NO_COMPRESSION
 
+# Begin event loop initalisation
 loop = asyncio.get_event_loop()
-coro = loop.create_server(DCPProto, *listen, ssl=ctx)
-_server = loop.run_until_complete(coro)
-logger.info('Serving on %r', _server.sockets[0].getsockname())
+coro = loop.create_server(partial(DCPProto, DCPServer(servname)), *listen,
+                          ssl=ctx)
+server = loop.run_until_complete(coro)
+logger.info('Serving on %r', server.sockets[0].getsockname())
 
 try:
     loop.run_forever()
 except KeyboardInterrupt:
     logger.info('Exiting from ctrl-c')
 finally:
-    _server.close()
+    server.close()
     loop.close()
