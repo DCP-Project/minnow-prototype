@@ -4,6 +4,9 @@ import asyncio, socket
 
 import logging
 
+from server import DCPServer
+from user import User
+from group import Group
 from config import *
 from errors import *
 import parser
@@ -24,15 +27,17 @@ def rdns_check(ip, future):
         traceback.print_exc()
         future.set_result(ip)
 
-
-class DCPProto(asyncio.Protocol):
+class DCPBaseProto(asyncio.Protocol):
     """ This is the asyncio connection stuff...
 
     Everything should just call back to the main server/user stuff here.
     """
 
-    def __init__(self, server):
+    def __init__(self, server, frame):
         self.__buf = b''
+
+        # Frame factory
+        self.frame = frame
 
         # Global state
         self.server = server
@@ -80,8 +85,8 @@ class DCPProto(asyncio.Protocol):
     def data_received(self, data):
         data = self.__buf + data
 
-        if not data.endswith(b'\x00\x00'):
-            data, sep, self.__buf = data.rpartition(b'\x00\x00')
+        if not data.endswith(self.frame.terminator):
+            data, sep, self.__buf = data.rpartition(self.frame.terminator)
             if sep:
                 data += sep
             else:
@@ -90,21 +95,21 @@ class DCPProto(asyncio.Protocol):
 
         try:
             for line in parser.Frame.parse(data):
-                server.line_queue.append((self, line))
+                self.server.line_queue.append((self, line))
         except ParserError as e:
             self.error('*', 'Parser failure', {'reason' : [str(e)]}, False)
 
-        if not server.waiter.done():
-            server.waiter.set_result(None)
+        if not self.server.waiter.done():
+            self.server.waiter.set_result(None)
 
     @staticmethod
     def _proto_name(target):
-        if isinstance(target, (User, Group, DCPProto)):
+        if isinstance(target, (User, Group, DCPBaseProto)):
             # XXX for now # is implicit with Group.
             # this is subject to change
             return target.name
         elif isinstance(target, DCPServer):
-            return '=' + server.name
+            return '=' + target.name
         elif target is None:
             return '*'
         else:
@@ -115,7 +120,7 @@ class DCPProto(asyncio.Protocol):
         target = self._proto_name(target)
         if kval is None: kval = dict()
 
-        frame = parser.Frame(source, target, command, kval)
+        frame = self.frame(source, target, command, kval)
         self.transport.write(bytes(frame))
 
     def error(self, command, reason, fatal=True, extargs=None):
@@ -131,3 +136,14 @@ class DCPProto(asyncio.Protocol):
         if fatal:
             self.transport.close()
 
+
+class DCPProto(DCPBaseProto):
+    def __init__(self, server):
+        super().__init__(server, parser.Frame)
+
+
+class DCPJSONProto(DCPBaseProto):
+    def __init__(self, server):
+        super().__init__(server, parser.JSONFrame)
+
+print(DCPProto, DCPJSONProto)

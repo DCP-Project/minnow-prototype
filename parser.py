@@ -15,9 +15,11 @@ class BaseFrame:
         self.kval = kval
 
 class Frame(BaseFrame):
+    terminator = b'\0\0'
+
     @classmethod
     def parse(cls, text):
-        lines = text.split(b'\0\0')
+        lines = text.split(cls.terminator)
         if lines[-1] != b'':
             raise ParserIncompleteError('Incomplete frame')
 
@@ -115,9 +117,11 @@ class Frame(BaseFrame):
 
 
 class JSONFrame(BaseFrame):
+    terminator = b'\0'
+
     @classmethod
     def parse(cls, text):
-        lines = text.split(b'\0')
+        lines = text.split(cls.terminator)
         if lines[-1] != b'':
             raise ParserIncompleteError('Incomplete frame')
 
