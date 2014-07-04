@@ -1,5 +1,5 @@
+import time
 from collections import defaultdict
-from time import time
 
 from errors import *
 from user import User
