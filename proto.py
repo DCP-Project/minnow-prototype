@@ -147,4 +147,3 @@ class DCPJSONProto(DCPBaseProto):
     def __init__(self, server):
         super().__init__(server, parser.JSONFrame)
 
-print(DCPProto, DCPJSONProto)
