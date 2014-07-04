@@ -95,6 +95,7 @@ class DCPServer:
 
         self.line_queue = deque()
 
+        # Start this loop
         asyncio.Task(self.process())
 
     def error(self, dest, command, reason, fatal=True, extargs=None):
@@ -396,7 +397,8 @@ class DCPServer:
 
             if not user.proto.host:
                 try:
-                    user.proto.host = yield from rdns_check(ip)
+                    wait = asyncio.wait_for(rdns_check(ip), 5)
+                    user.proto.host = yield from wait
                 except Exception:
                     user.proto.host = ip
 
