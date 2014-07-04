@@ -84,9 +84,8 @@ class DCPServer:
 
         if fatal:
             proto = getattr(dest, 'proto', dest)
-            peername = proto.transport.get_extra_info('peername')
-            logger.debug('Fatal error encountered for client %s (%s: %s [%r])',
-                         peername, command, reason, extargs)
+            logger.debug('Fatal error encountered for client %r (%s: %s [%r])',
+                         proto.peername, command, reason, extargs)
 
         proto.error(command, reason, fatal, extargs)
 
@@ -354,7 +353,7 @@ class DCPServer:
 
     def ping_timeout(self, user) -> SIGNON:
         if user.timeout:
-            logger.debug(user, 'User %s timed out', user.proto.peername)
+            logger.debug(user, 'User %r timed out', user.proto.peername)
             self.error(user, 'ping', 'Ping timeout')
             return
 
@@ -411,9 +410,7 @@ class DCPProto(asyncio.Protocol):
         self.callbacks['signon'] = cb
 
     def connection_lost(self, exc):
-        if self.transport:
-            peername = self.transport.get_extra_info('peername')
-            logger.info('Connection lost from %s (reason %s)', peername, str(exc))
+        logger.info('Connection lost from %r (reason %s)', self.peername, str(exc))
 
         self.server.user_exit(self.user)
 
