@@ -133,7 +133,7 @@ class DCPServer:
 
         del self.users[user.name]
 
-        for group in user.groups:
+        for group in list(user.groups):
             # Part them from all groups
             group.member_del(user, permanent=True)
 
@@ -327,7 +327,7 @@ class DCPServer:
                        {'target' : [target]})
             return
 
-        group.member_add(user, line.kval.get('reason', ['']))
+        group.member_add(user, line.kval.get('reason', [''])[0])
 
     def cmd_group_exit(self, user, line) -> SIGNON:
         target = line.target

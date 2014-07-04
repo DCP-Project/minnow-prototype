@@ -31,18 +31,18 @@ class Group:
         self.users.add(user)
         user.groups.add(self)
 
-        kval = {}
+        kval = dict()
         if reason:
             kval['reason'] = [reason]
 
-        self.send(user.handle, self, 'group-enter', kval)
+        self.send(user, self, 'group-enter', kval)
 
         # Burst the channel info
         kval = {
             'time' : [str(self.ts)],
             'topic' : [self.topic if self.topic else ''],
         }
-        user.send(self, user.handle, 'group-info', kval)
+        user.send(self, user, 'group-info', kval)
 
         kval = {
             'users' : []
@@ -53,7 +53,7 @@ class Group:
             tlen += len(user2.name) + 1
             if tlen >= MAXFRAME:
                 # Overflow... send what we have and continue
-                user.send(self, user.handle, 'group-names', kval)
+                user.send(self, user, 'group-names', kval)
                 tlen = d_tlen + len(user2.name) + 1
                 kval['users'] = []
 
@@ -61,13 +61,13 @@ class Group:
 
         # Burst what's left
         if len(kval['users']) > 0:
-            user.send(self, user.handle, 'group-names', kval)
+            user.send(self, user, 'group-names', kval)
 
         # Burst ACL's
         kval = {
             'acl' : [],
         }
-        user.send(self, user.handle, 'acl-list', None)
+        user.send(self, user, 'acl-list', None)
 
     def member_del(self, user, reason=None, permanent=False):
         if user not in self.users:
@@ -86,7 +86,7 @@ class Group:
         if permanent:
             kval['quit'] = '*'
 
-        self.send(user.handle, self.name, 'group-exit', kval)
+        self.send(self, user, 'group-exit', kval)
 
     def message(self, source, message):
         # TODO various ACL checks
@@ -98,12 +98,15 @@ class Group:
         kval = defaultdict(list)
         kval['body'] = message
 
-        self.send(self.name, user.handle, 'message', kval, [source])
+        self.send(self, user, 'message', kval, [source])
 
     def send(self, source, target, command, kval=None, filter=[]):
+        if not kval:
+            kval = dict()
+
         for user in self.users:
             if user in filter:
                 continue
 
-            user.send(source, target, self.name, command, kval)
+            user.send(source, target, command, kval)
 
