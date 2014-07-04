@@ -26,15 +26,19 @@ ctx.options |= ssl.OP_NO_COMPRESSION
 
 # Begin event loop initalisation
 loop = asyncio.get_event_loop()
-coro = loop.create_server(partial(DCPProto, DCPServer(servname)), *listen,
-                          ssl=ctx)
-server = loop.run_until_complete(coro)
-logger.info('Serving on %r', server.sockets[0].getsockname())
+state = DCPServer(servname)
+coro = [
+    loop.create_server(partial(DCPProto, state), *listen, ssl=ctx),
+    loop.create_server(partial(DCPJSONProto, state), *listen_json, ssl=ctx)
+]
+done, pending = loop.run_until_complete(asyncio.wait(coro))
+logger.info('Serving on %r', listen)
+logger.info('Serving JSON on %r', listen_json)
 
 try:
     loop.run_forever()
 except KeyboardInterrupt:
     logger.info('Exiting from ctrl-c')
 finally:
-    server.close()
+    for server in done: server.cancel()
     loop.close()

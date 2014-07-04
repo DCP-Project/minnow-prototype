@@ -8,6 +8,7 @@ servname = 'elizabethmyers.me.uk'
 
 # Listen on this IP/port pair
 listen = ('0.0.0.0', 7266)
+listen_json = ('0.0.0.0', 7267)
 
 # Server password
 servpass = None
