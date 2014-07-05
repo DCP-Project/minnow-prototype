@@ -228,7 +228,7 @@ class DCPServer:
         for i, block in enumerate(self.motd):
             kval = {
                 'text' : block,
-                'multipart' : ['*'],
+                'multipart' : ['text'],
                 'part' : [str(i + 1)],
                 'total' : [total],
             }
