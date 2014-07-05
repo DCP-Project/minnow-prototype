@@ -3,6 +3,7 @@
 import asyncio, socket
 
 import logging
+import traceback
 
 from server import DCPServer
 from user import User
@@ -80,6 +81,8 @@ class DCPBaseProto(asyncio.Protocol):
     def connection_lost(self, exc):
         logger.info('Connection lost from %r (reason %s)', self.peername, str(exc))
 
+        self.rdns.cancel()
+
         self.server.user_exit(self.user)
 
     def data_received(self, data):
@@ -93,12 +96,14 @@ class DCPBaseProto(asyncio.Protocol):
                 self.__buf = data
                 return
 
-        try:
-            for line in self.frame.parse(data):
-                self.server.line_queue.append((self, line))
-        except ParserError as e:
-            logger.exception('Parser failure')
-            self.error('*', 'Parser failure', {'cause' : [str(e)]}, False)
+        for line in data.split(self.frame.terminator):
+            try:
+                frame = self.frame.parse(data)
+            except ParserError as e:
+                logger.exception('Parser failure')
+                self.error('*', 'Parser failure', {'cause' : [str(e)]}, False)
+
+            self.server.line_queue.append((self, line))
 
         if not self.server.waiter.done():
             self.server.waiter.set_result(None)

@@ -191,7 +191,7 @@ class DCPServer:
                        {'handle' : [name]})
             return False
 
-        if len(name) > 48:
+        if len(name) > parser.MAXTARGET:
             self.error(proto, line.command, 'Handle is too long', False,
                        {'handle' : [name]})
             return False
@@ -201,7 +201,7 @@ class DCPServer:
                        {'handle' : [name]})
             return False
 
-        if len(gecos) > 48:
+        if len(gecos) > parser.MAXTARGET:
             self.error(proto, line.command, 'GECOS is too long', False,
                        {'gecos' : [gecos]})
             return False
@@ -251,7 +251,7 @@ class DCPServer:
                        {'handle' : [name]})
             return
 
-        if len(name) > 48:
+        if len(name) > parser.MAXTARGET:
             self.error(proto, line.command, 'Handle is too long', True,
                        {'handle' : [name]})
             return
@@ -410,7 +410,7 @@ class DCPServer:
                        {'target' : [target]})
             return
 
-        if len(target) > 48:
+        if len(target) > parser.MAXTARGET:
             self.error(user, line.command, 'Group name too long', False,
                        {'target' : [target]})
             return
