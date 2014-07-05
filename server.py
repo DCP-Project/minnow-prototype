@@ -178,9 +178,6 @@ class DCPServer:
             # Part them from all groups
             group.member_del(user, permanent=True)
 
-        for cb in user.proto.callbacks.values():
-            cb.cancel()
-
     def user_register(self, proto, name, gecos, password):
         if name is None:
             self.error(proto, line.command, 'No handle', False)
@@ -472,5 +469,5 @@ class DCPServer:
             proto.callbacks.pop('signon', None)
             return
 
-        self.error(proto, '*', 'Timed out')
+        self.error(proto, '*', 'Connection timed out')
 

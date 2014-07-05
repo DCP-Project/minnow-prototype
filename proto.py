@@ -85,6 +85,11 @@ class DCPBaseProto(asyncio.Protocol):
 
         self.server.user_exit(self.user)
 
+        for cb in self.callbacks.values():
+            cb.cancel()
+
+        self.transport = None
+
     def data_received(self, data):
         data = self.__buf + data
 
@@ -122,6 +127,9 @@ class DCPBaseProto(asyncio.Protocol):
             return '&' + getattr(target, 'name', target)
 
     def send(self, source, target, command, kval=None):
+        if not self.transport:
+            return
+
         source = self._proto_name(source)
         target = self._proto_name(target)
         if kval is None: kval = dict()
@@ -130,6 +138,9 @@ class DCPBaseProto(asyncio.Protocol):
         self.transport.write(bytes(frame))
 
     def error(self, command, reason, fatal=True, extargs=None):
+        if not self.transport:
+            return
+
         kval = {
             'command' : [command],
             'reason' : [reason],
