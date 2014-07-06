@@ -213,3 +213,26 @@ class JSONFrame(BaseFrame):
         fmtstr = 'JSONFrame(source={}, target={}, command={}, kval={})'
         return fmtstr.format(self.source, self.target, self.command, self.kval)
 
+class Multipart:
+    """ A small helper class for multipart messaging """
+    def __init__(self, total, size):
+        self.total = total
+        self.size = size
+
+        self.recieved = 0
+        self.len = 0
+        self.data = defaultdict(list)
+    
+    def recieve(self, key, data):
+        self.recieved += 1
+        if self.recieved > self.total:
+            raise MultipartOverflowError('Excess data')
+
+        self.len += len(data)
+        if self.len > self.size:
+            raise MultipartOverflowError('Excess data')
+
+        self.data[key].append(data)
+
+    def done(self):
+        return self.recieved == self.total

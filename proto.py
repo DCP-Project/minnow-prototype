@@ -56,6 +56,9 @@ class DCPBaseProto(asyncio.Protocol):
 
         self.rdns = asyncio.Future()
 
+        # Multipart storage stuff
+        self.multipart = dict()
+
     def set_host(self, future):
         logger.info('Host for %r set to [%s]', self.peername, future.result())
         self.host = future.result()
