@@ -28,9 +28,10 @@ class BaseFrame:
                                  self.kval)
 
     @staticmethod
-    def will_fit(command, kval):
+    def fit(command, kval):
         """ Get the minimum overhead for a frame with a given set of keys """
-        return self._generic_len(MAXTARGET, MAXTARGET, command, kval)
+        llen = self._generic_len(MAXTARGET, MAXTARGET, command, kval)
+        return MAXFRAME - llen
 
 class Frame(BaseFrame):
     terminator = b'\0\0'
@@ -113,7 +114,7 @@ class Frame(BaseFrame):
         # the end and the known separators)
         llen = 3 + len(source) + 1 + len(target) + 1 + len(command) + 1 + 2
 
-        if len(self.kval) > 0:
+        if len(kval) > 0:
             llen += sum(sum((len(k)+len(v2)+2) for v2 in v) for k, v in 
                             kval.items()) - 1
 
