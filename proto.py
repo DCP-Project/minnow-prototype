@@ -157,7 +157,7 @@ class DCPBaseProto(asyncio.Protocol):
                 kval2[key] = kval[key]
 
                 # Send off
-                self.send_multipart(source, target, command, [key], kval)
+                self.send_multipart(source, target, command, [key], kval2)
 
                 # Delete after use
                 del kval2[key]
