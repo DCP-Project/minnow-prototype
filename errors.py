@@ -22,6 +22,14 @@ class ParserInvalidError(ParserError):
     pass
 
 
+class MultipartError(ParserError):
+    pass
+
+
+class MultipartOverflowError(ParserError):
+    pass
+
+
 class UserError(DCPError):
     pass
 
