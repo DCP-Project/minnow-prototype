@@ -236,3 +236,4 @@ class Multipart:
 
     def done(self):
         return self.recieved == self.total
+
