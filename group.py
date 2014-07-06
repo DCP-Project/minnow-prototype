@@ -105,14 +105,19 @@ class Group:
         self.send(source, self, 'message', kval, [source])
 
     def send(self, source, target, command, kval=None, filter=[]):
-        if not kval:
-            kval = dict()
-
         for user in self.users:
             if user in filter:
                 continue
 
             user.send(source, target, command, kval)
+
+    def send_multipart(self, source, target, command, keys=[], kval=None,
+                       filter=[]):
+        for user in self.users:
+            if user in filter:
+                continue
+
+            user.send_multipart(source, target, command, keys, kval)
 
     def has_acl(self, acl):
         return acl in self.acl

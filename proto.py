@@ -137,6 +137,68 @@ class DCPBaseProto(asyncio.Protocol):
         frame = self.frame(source, target, command, kval)
         self.transport.write(bytes(frame))
 
+    def send_multipart(self, source, target, command, keys=[], kval=None):
+        if kval is None:
+            # No point
+            self.send(source, target, command, kval)
+            return
+
+        exempt_keys = ('multipart', 'part', 'total')
+        if not keys:
+            keys = {k for k in kval.keys() if k not in exempt_keys}
+
+        if len(keys) > 1:
+            keys.extend(exempt_keys)
+
+            # Copy all unrelated keys
+            kval2 = {k : v for k, v in kval.items() if k not in keys}
+            for key in keys:
+                # Temporarily copy
+                kval2[key] = kval[key]
+
+                # Send off
+                self.send_multipart(source, target, command, [key], kval)
+
+                # Delete after use
+                del kval2[key]
+
+            return
+        else:
+            key = keys[0]
+
+        kval = kval.copy()
+        sname = source.name
+        tname = target.name
+
+        # Strip the list
+        data = ''.join(kval[key])
+        datalen = len(data)
+
+        kval['multipart'] = [key]
+
+        # This is only a rough guess, to get the number of digits
+        # required to store the parts/totals.
+        kval['part'] = kval['total'] = [str(datalen)]
+        kval['size'] = str(datalen)
+
+        fit = self.proto.frame._generic_len(sname, tname, command, kval) - 1
+        if fit >= datalen:
+            # No point in using multipart
+            del kval['multipart']
+            del kval['part']
+            del kval['total']
+            self.send(source, target, command, kval)
+            return
+        else:
+            # Fit our data
+            plen = datalen + fit # Actually subtraction
+            split = [data[0+i:plen+i] for i in range(0, datalen, plen)]
+            kval['total'] = [str(len(split))]
+            for part, data in enumerate(split):
+                kval[key] = [data]
+                kval['part'] = [str(part + 1)]
+                self.send(source, target, command, kval)
+
     def error(self, command, reason, fatal=True, extargs=None):
         if not self.transport:
             return

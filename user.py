@@ -1,4 +1,4 @@
-from collections import defaultdict
+from math import ceil
 
 class Roster:
     # TODO
@@ -19,9 +19,12 @@ class User:
 
     def send(self, source, target, command, kval=None):
         if kval is None:
-            kval = defaultdict(list)
+            kval = {}
 
         self.proto.send(source, target, command, kval)
+
+    def send_multipart(self, source, target, command, keys=[], kval=None):
+        self.proto.send_multipart(source, target, command, keys, kval)
 
     def message(self, source, message):
         self.send(source, self, 'message', {'body' : message})
