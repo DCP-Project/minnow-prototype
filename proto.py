@@ -177,15 +177,14 @@ class DCPBaseProto(asyncio.Protocol):
         kval['multipart'] = [key]
 
         # This is only a rough guess, to get the number of digits
-        # required to store the parts/totals.
-        kval['part'] = kval['total'] = [str(datalen)]
+        # required to store the total.
+        kval['total'] = [str(datalen)]
         kval['size'] = str(datalen)
 
         fit = self.proto.frame._generic_len(sname, tname, command, kval) - 1
         if fit >= datalen:
             # No point in using multipart
             del kval['multipart']
-            del kval['part']
             del kval['total']
             del kval['size']
             self.send(source, target, command, kval)
@@ -197,7 +196,6 @@ class DCPBaseProto(asyncio.Protocol):
             kval['total'] = [str(len(split))]
             for part, data in enumerate(split):
                 kval[key] = [data]
-                kval['part'] = [str(part + 1)]
                 self.send(source, target, command, kval)
 
     def error(self, command, reason, fatal=True, extargs=None):
