@@ -187,6 +187,7 @@ class DCPBaseProto(asyncio.Protocol):
             del kval['multipart']
             del kval['part']
             del kval['total']
+            del kval['size']
             self.send(source, target, command, kval)
             return
         else:
