@@ -7,6 +7,7 @@ from errors import *
 
 MAXFRAME = 1400
 MAXTARGET = 48
+MAXCOMMAND = 32
 
 class BaseFrame:
     def __init__(self, source, target, command, kval):
