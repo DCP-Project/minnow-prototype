@@ -51,6 +51,8 @@ class GroupACLValues(enum.Enum):
 
 
 class BaseACL:
+    __slots__ = ['acls', 'acl_map']
+
     def __init__(self, acls):
         self.acls = acls
 
@@ -93,14 +95,14 @@ class BaseACL:
 
 
 class UserACL(BaseACL):
-    __slots__ = ['acls', 'acl_map']
+    __slots__ = ''
 
     def __init__(self):
         super().__init__(UserACLValues)
 
 
 class GroupACL(BaseACL):
-    __slots__ = ['acls', 'acl_map']
+    __slots__ = ''
 
     def __init__(self):
         super().__init__(GroupACLValues)

@@ -13,6 +13,8 @@ class GroupConfigValues(enum.Enum):
 
 
 class BaseConfig:
+    __slots__ = ['options', 'option_map']
+
     def __init__(self, options):
         self.options = options
 
@@ -48,14 +50,14 @@ class BaseConfig:
 
 
 class UserConfig(BaseConfig):
-    __slots__ = ['options', 'option_map']
+    __slots__ = ''
 
     def __init__(self):
         return super().__init__(UserConfigValues)
 
 
 class GroupConfig(BaseConfig):
-    __slots__ = ['options', 'option_map']
+    __slots__ = ''
 
     def __init__(self):
         return super().__init__(GroupConfigValues)
