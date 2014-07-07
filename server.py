@@ -18,6 +18,8 @@ from storage import UserStorage, GroupStorage
 from settings import *
 from errors import *
 import parser
+import acl
+import config
 
 logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
@@ -112,8 +114,8 @@ class DCPServer:
                     self.error(proto, line.command, 'Internal server ' \
                             'error (this isn\'t your fault)')
 
-    def user_enter(self, proto, name, gecos, acl, property, options):
-        user = User(proto, name, gecos, acl, property, set(), options)
+    def user_enter(self, proto, name, gecos, acl, config, options):
+        user = User(proto, name, gecos, acl, config, None, options)
         proto.user = self.users[name] = user
 
         # Cancel the timeout
@@ -240,7 +242,7 @@ class DCPServer:
         options = line.kval.get('options', [])
 
         yield from self.user_enter(proto, name, uinfo.gecos, uinfo.acl,
-                                   uinfo.property, options)
+                                   uinfo.config, options)
 
     def cmd_register(self, proto, line) -> UNREG:
         if self.servpass:
@@ -270,10 +272,10 @@ class DCPServer:
 
         options = line.kval.get('options', [])
 
-        yield from self.user_enter(proto, name, gecos, set(), set(), options)
+        yield from self.user_enter(proto, name, gecos, None, None, options)
 
     def cmd_fregister(self, user, line) -> SIGNON:
-        if not user.has_acl('user:register'):
+        if acl.UserACLValues.user_register not in user.acl:
             self.error(user, line.command, 'No permission', False)
             return
 
@@ -344,7 +346,8 @@ class DCPServer:
             'gecos' : [user.gecos],
         }
 
-        if user.has_acl('user:auspex'):
+        print(user.acl)
+        if acl.UserACLValues.user_auspex in user.acl:
             ip = user.proto.peername[0]
 
             kval.update({
@@ -354,9 +357,11 @@ class DCPServer:
             })
 
         if user.groups:
+            group_prop = config.GroupConfigValues.private
+            user_acl = config.UserConfigValues.user_auspex
             kval['groups'] = [group for group in user.groups if not
-                              (group.has_property('private') and not
-                               user.has_acl('user:auspex'))]
+                              (group_prop in group.config and not user_acl in
+                               user.acl)]
 
         # FIXME - if WHOIS info is too big, split it up
 

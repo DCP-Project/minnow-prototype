@@ -1,8 +1,10 @@
 import time
 import shelve
 
+import acl, config
+
 class DCPStoredUser:
-    version = 1
+    version = 2
 
     def __init__(self, ts, hash, gecos, groups):
         self.ts = ts
@@ -10,20 +12,66 @@ class DCPStoredUser:
         self.gecos = gecos
         self.groups = groups
 
-        self.acl = set()
-        self.property = set()
+        self.acl = acl.UserACL()
+        self.config = config.UserConfig()
         self.roster = set()
 
+    @classmethod
+    def upgrade(cls, old):
+        if old.version == cls.version:
+            return
+
+        new = None
+        if old.version == 1:
+            new = DCPStoredUser(old.ts, old.hash, old.gecos, old.groups)
+
+            # ACL format changes
+            for acl in old.acl:
+                # Version 1 had no reasons
+                new.acl[acl] = (0, 'Internal format upgrade')
+
+            # properties -> config (that format has also changed)
+            for property in old.property:
+                config, sep, value = property.partition(':')
+                if not sep:
+                    value = None
+
+                new.config[config] = value
+
+        return new
 
 class DCPStoredGroup:
-    version = 1
+    version = 2
 
     def __init__(self, ts):
         self.ts = ts
 
-        self.acl = set()
-        self.property = set()
+        self.acl = acl.GroupACL()
+        self.config = config.GroupConfig()
         self.topic = None
+
+    @classmethod
+    def upgrade(cls, old):
+        if oldversion == cls.version:
+            return
+
+        elif old.version == 1:
+            new = DCPStoredGroup(ts)
+
+            # ACL format changes
+            for acl in old.acl:
+                # Version 1 had no reasons
+                new.acl[acl] = (0, 'Internal format upgrade')
+
+            # properties -> config (that format has also changed)
+            for property in old.properties:
+                config, sep, value = property.partition(':')
+                if not sep:
+                    value = None
+
+                new.config[config] = value
+
+            return new
 
 
 class BaseStorage:
@@ -34,6 +82,11 @@ class BaseStorage:
     def get(self, key):
         with shelve.open(self.filename) as db:
             item = db.get(key, None)
+
+            print(dir(item))
+
+            if item and item.version < self.cls.version:
+                db[key] = item = self.cls.upgrade(item)
 
         return item
 
@@ -65,7 +118,7 @@ class UserStorage(BaseStorage):
         super().__init__(filename, DCPStoredUser)
 
     def add(self, key, *args, **kwargs):
-        args = [round(time.time())].extend(args)
+        args = (round(time.time()),) + args
         super().add(key, *args, **kwargs)
 
 class GroupStorage(BaseStorage):
@@ -73,5 +126,5 @@ class GroupStorage(BaseStorage):
         super().__init__(filename, DCPStoredGroup)
 
     def add(self, key, *args, **kwargs):
-        args = [round(time.time())].extend(args)
+        args = (round(time.time()),) + args
         super().add(key, *args, **kwargs)
