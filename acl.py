@@ -95,14 +95,14 @@ class BaseACL:
 
 
 class UserACL(BaseACL):
-    __slots__ = ''
+    __slots__ = BaseACL.__slots__
 
     def __init__(self):
         super().__init__(UserACLValues)
 
 
 class GroupACL(BaseACL):
-    __slots__ = ''
+    __slots__ = BaseACL.__slots__
 
     def __init__(self):
         super().__init__(GroupACLValues)

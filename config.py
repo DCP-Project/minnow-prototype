@@ -50,14 +50,14 @@ class BaseConfig:
 
 
 class UserConfig(BaseConfig):
-    __slots__ = ''
+    __slots__ = BaseConfig.__slots__
 
     def __init__(self):
         return super().__init__(UserConfigValues)
 
 
 class GroupConfig(BaseConfig):
-    __slots__ = ''
+    __slots__ = BaseConfig.__slots__
 
     def __init__(self):
         return super().__init__(GroupConfigValues)
