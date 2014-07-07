@@ -152,6 +152,8 @@ class DCPBaseProto(asyncio.Protocol):
             keys = {k for k in kval.keys() if k not in exempt_keys}
 
         if len(keys) > 1:
+            print('loldongs')
+            print('loldongs')
             keys.extend(exempt_keys)
 
             # Copy all unrelated keys
@@ -185,7 +187,7 @@ class DCPBaseProto(asyncio.Protocol):
         kval['total'] = [str(datalen)]
         kval['size'] = [len(str(datalen))]
 
-        fit = self.proto.frame._generic_len(sname, tname, command, kval) - 1
+        fit = self.frame._generic_len(sname, tname, command, kval) - 1
         if fit >= datalen:
             # No point in using multipart
             del kval['multipart']
