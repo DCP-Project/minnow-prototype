@@ -1,7 +1,17 @@
 import time
 import shelve
+from contextlib import contextmanager
+from fcntl import flock, LOCK_EX, LOCK_UN
 
 import acl, config
+
+@contextmanager
+def open_db(name):
+    f = shelve.open(name)
+    flock(f, LOCK_EX)
+    yield
+    flock(f, LOCK_UN)
+    f.close()
 
 class DCPStoredUser:
     version = 2
@@ -80,7 +90,7 @@ class BaseStorage:
         self.cls = cls
 
     def get(self, key):
-        with shelve.open(self.filename) as db:
+        with open_db(self.filename) as db:
             item = db.get(key, None)
 
             print(dir(item))
@@ -92,11 +102,11 @@ class BaseStorage:
 
     def add(self, key, *args, **kwargs):
         item = self.cls(*args, **kwargs)
-        with shelve.open(self.filename) as db:
+        with open_db(self.filename) as db:
             db[key] = item
 
     def modify(self, key, **kwargs):
-        with shelve.open(self.filename) as db:
+        with open_db(self.filename) as db:
             item = db.get(key, None)
 
         if item is None:
@@ -105,11 +115,11 @@ class BaseStorage:
         for k, v in kwargs.items():
             setattr(item, k, v)
 
-        with shelve.open(self.filename) as db:
+        with open_db(self.filename) as db:
             db[key] = item
 
     def delete(self, key):
-        with shelve.open(self.filename) as db:
+        with open_db(self.filename) as db:
             db.pop(key, None)
 
 
