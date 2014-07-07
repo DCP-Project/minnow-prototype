@@ -182,7 +182,7 @@ class DCPBaseProto(asyncio.Protocol):
         # This is only a rough guess, to get the number of digits
         # required to store the total.
         kval['total'] = [str(datalen)]
-        kval['size'] = str(datalen)
+        kval['size'] = [len(str(datalen))]
 
         fit = self.proto.frame._generic_len(sname, tname, command, kval) - 1
         if fit >= datalen:
@@ -200,6 +200,11 @@ class DCPBaseProto(asyncio.Protocol):
             for part, data in enumerate(split):
                 kval[key] = [data]
                 self.send(source, target, command, kval)
+
+                # Not needed anymore
+                # XXX recompute optimal size
+                del kval['total']
+                del kval['size']
 
     def error(self, command, reason, fatal=True, extargs=None):
         if not self.transport:
