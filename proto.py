@@ -184,8 +184,7 @@ class DCPBaseProto(asyncio.Protocol):
 
         # This is only a rough guess, to get the number of digits
         # required to store the total.
-        kval['total'] = [str(datalen)]
-        kval['size'] = [len(str(datalen))]
+        kval['total'] = kval['size'] = [str(datalen)]
 
         fit = self.frame._generic_len(sname, tname, command, kval) - 1
         if fit >= datalen:
