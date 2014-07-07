@@ -15,7 +15,7 @@ import traceback
 from user import User
 from group import Group
 from storage import UserStorage, GroupStorage
-from config import *
+from settings import *
 from errors import *
 import parser
 

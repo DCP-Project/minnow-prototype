@@ -8,7 +8,7 @@ import traceback
 from server import DCPServer
 from user import User
 from group import Group
-from config import *
+from settings import *
 from errors import *
 import parser
 

@@ -7,7 +7,7 @@ from functools import partial
 
 from server import DCPServer
 from proto import DCPProto, DCPJSONProto
-from config import *
+from settings import *
 
 logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
