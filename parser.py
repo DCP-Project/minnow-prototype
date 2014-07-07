@@ -1,7 +1,9 @@
 import json
 
 from collections import defaultdict
-from itertools import islice
+from itertools import islice, takewhile
+from functools import reduce
+from operator import concat
 
 from errors import *
 
@@ -37,6 +39,9 @@ class BaseFrame:
 class Frame(BaseFrame):
     terminator = b'\0\0'
 
+    check_null = (lambda ch: ch != '\0')
+    get_next = (lambda : reduce(concat, takewhile(check_null, frame_iter)))
+
     @classmethod
     def parse(cls, text):
         if not text.endswith(cls.terminator) or len(text) < 10:
@@ -47,40 +52,41 @@ class Frame(BaseFrame):
         if llen > MAXFRAME:
             raise ParserSizeError('Frame is too large for the wire')
 
-        # Tokenise
-        text = text[3:].split(b'\0')
-        if text[-1] == b'':
-            del text[-1]
+        try:
+            # Grab our iterator for the frame
+            text = text.decode('utf-8', 'replace')
+        except Exception as e:
+            raise ParserError('Couldn\'t decode text: ' + str(e))
 
-        if len(text) < 3:
-            raise ParserInvalidError('Invalid DCP frame')
+        try:
+            llen = len(text) - 2
+            frame_iter = islice(text, 3, llen)
+            llen -= 3
 
-        source = text[0].decode('utf-8', 'replace').lower()
-        target = text[1].decode('utf-8', 'replace').lower()
-        command = text[2].decode('utf-8', 'replace').lower()
+            source = get_next()
+            llen -= len(source) - 1
 
-        # Generate the key/val portion
+            target = get_next()
+            llen -= len(target) - 1
+
+            command = get_next()
+            llen -= len(target) - 1
+        except Exception as e:
+            raise ParserError('Invalid opening header')
+
         kval = defaultdict(list)
+        try:
+            kval = defaultdict(list)
+            while llen > 0:
+                key = get_next()
+                llen -= len(key) - 1
 
-        if len(text) > 3:
-            if (len(text) - 3) % 2:
-                # Pad if we have too few items
-                text.append(b'*')
+                value = get_next()
+                llen -= len(key) - 1
 
-            # This part might be a bit weird for a few...
-            # We make a slice of text from the third position to the end,
-            # then we duplicate the *same* iterator (same reference and all)
-            # and feed it to zip, which will then output keys and values
-            # sequentially one by one.
-            i = [islice(iter(text), 3, None)] * 2
-            for k, v in zip(*i):
-                # All keys are lowercase
-                k = k.decode('utf-8', 'replace').lower()
-                v = v.decode('utf-8', 'replace')
-                if v in kval[k]:
-                    raise ParserValueError('Duplicate value not allowed')
-
-                kval[k].append(v)
+                kval[key].append(value)
+        except ParserError:
+            raise ParserError('Invalid keys/values')
 
         return cls(source, target, command, kval)
 
