@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-from fcntl import flock, LOCK_EX, LOCK_UN
 from sys import argv, stderr, path
 import shelve
 
@@ -18,11 +17,7 @@ import storage
 
 username = argv[1]
 acl_list = argv[2:]
-db = None
-try:
-    db = shelve.open('users.db')
-    flock(db, LOCK_EX)
-
+with storage.db_open('users.db'):
     if username not in db:
         print("User not found", file=stderr)
         quit(2)
@@ -39,10 +34,6 @@ try:
             user.acl[acl] = (0, 'Activated from command line')
 
     db[username] = user
-finally:
-    if db:
-        flock(db, LOCK_UN)
-        db.close()
 
 print("Success")
 print("User will have to log in and out to complete the changes")
