@@ -107,11 +107,12 @@ class DCPBaseProto(asyncio.Protocol):
         for line in data.split(self.frame.terminator):
             try:
                 frame = self.frame.parse(data)
+                print(frame)
             except ParserError as e:
                 logger.exception('Parser failure')
                 self.error('*', 'Parser failure', {'cause' : [str(e)]}, False)
 
-            self.server.line_queue.append((self, line))
+            self.server.line_queue.append((self, frame))
 
         if not self.server.waiter.done():
             self.server.waiter.set_result(None)
