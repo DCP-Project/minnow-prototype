@@ -37,50 +37,22 @@ class DCPServer:
         self.users = dict()
         self.groups = dict()
 
-        f = None
-
-        # A list of lists
-        self.motd = []
-        try:
-            f = open('motd.txt', 'r')
-
-            # A pessimistic guess
-            # (max name len + server name + seps + cmd + other gunk)
-            curlen = baselen = len(self.name) + 128
-            curframe = []
-            for line in f:
-                if line == '':
-                    break
-
-                line = line.rstrip()
-                if not line: line = ' '
-
-                if len(line) > 200:
-                    # Cap it for the love of god
-                    line = line[:200]
-
-                # 6 is motd\0...\0
-                llen = len(line) + 6
-                if llen + curlen > parser.MAXFRAME:
-                    self.motd.append(curframe)
-                    curframe = []
-                    curlen = baselen
-
-                curlen += llen
-                curframe.append(line)
-
-            self.motd.append(curframe)
-        except Exception:
-            pass
-        finally:
-            if f: f.close()
-
         self.user_store = UserStorage()
 
         self.line_queue = deque()
 
+        self.motd = None
+        self.motd_load()
+
         # Start this loop
         asyncio.Task(self.process())
+
+    def motd_load(self):
+        try:
+            with open('motd.txt', 'r') as f:
+                self.motd = ''.join(f.readlines())
+        except Exception as e:
+            logger.exception('Could not read MOTD')
 
     def error(self, dest, command, reason, fatal=True, extargs=None):
         if hasattr(dest, 'proto'):
@@ -220,16 +192,10 @@ class DCPServer:
             user.send(self, user, 'motd', {})
             return
 
-        total = str(len(self.motd))
-
-        for i, block in enumerate(self.motd):
-            kval = {
-                'text' : block,
-                'multipart' : ['text'],
-                'part' : [str(i + 1)],
-                'total' : [total],
-            }
-            user.send(self, user, 'motd', kval)
+        kval = {
+            'text' : [self.motd],
+        }
+        user.send_multipart(self, user, 'motd', ['text'], kval)
 
     def cmd_signon(self, proto, line) -> UNREG:
         if self.servpass:

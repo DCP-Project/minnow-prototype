@@ -107,7 +107,6 @@ class DCPBaseProto(asyncio.Protocol):
         for line in data.split(self.frame.terminator):
             try:
                 frame = self.frame.parse(data)
-                print(frame)
             except ParserError as e:
                 logger.exception('Parser failure')
                 self.error('*', 'Parser failure', {'cause' : [str(e)]}, False)
@@ -152,8 +151,6 @@ class DCPBaseProto(asyncio.Protocol):
             keys = {k for k in kval.keys() if k not in exempt_keys}
 
         if len(keys) > 1:
-            print('loldongs')
-            print('loldongs')
             keys.extend(exempt_keys)
 
             # Copy all unrelated keys
