@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 
-from os import chdir
-from sys import argv, stderr
+import os
+from sys import argv, stderr, path
 import shelve
-from storage import UserStorage
 
 if len(argv) < 3:
     print("Usage: {} username acl [...]".format(argv[0]), file=stderr)
     quit(1)
 
-os.chdir('..')
+if not os.path.exists('users.db') or os.path.exists('users.db.db'):
+    os.chdir('..')
+
+# The below doesn't work without this grr
+path.append(os.getcwd())
+import storage
 
 username = argv[1]
 acl_list = argv[2:]
@@ -24,10 +28,10 @@ with shelve.open('users.db') as db:
         acl = acl.lower()
         if acl in user.acl:
             print("Deactivating ACL {}".format(acl))
-            user.acl.remove(acl)
+            del user.acl[acl]
         else:
             print("Activating ACL {}".format(acl))
-            user.acl.add(acl)
+            user.acl[acl] = (0, 'Activated from command line')
 
     db[username] = user
 

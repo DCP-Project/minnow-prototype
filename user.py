@@ -1,21 +1,26 @@
 from math import ceil
-
-class Roster:
-    # TODO
-    pass
+from config import UserConfig
+from acl import UserACL
 
 class User:
-    def __init__(self, proto, name, gecos, acl, property, roster, options):
+    def __init__(self, proto, name, gecos, acl=None, config=None, roster=None,
+                 options=[]):
         self.proto = proto
         self.name = name
         self.gecos = gecos
         self.acl = acl
-        self.property = property
+        self.config = config
         self.roster = roster
         self.options = options
 
         self.sessions = set()
         self.groups = set()
+
+        if self.acl is None:
+            self.acl = UserACL()
+
+        if self.config is None:
+            self.config = UserConfig()
 
     def send(self, source, target, command, kval=None):
         if kval is None:
@@ -28,27 +33,6 @@ class User:
 
     def message(self, source, message):
         self.send(source, self, 'message', {'body' : message})
-
-    def has_acl(self, acl):
-        return acl in self.acl
-
-    def set_acl(self, acl):
-        self.acl.add(acl)
-
-    def del_acl(self, acl):
-        self.acl.discard(acl)
-
-    def has_property(self, property):
-        return property in self.property
-
-    def get_property(self, property):
-        return self.property[property]
-
-    def set_property(self, property, value=None):
-        self.property[property] = value
-
-    def del_property(self, property):
-        self.property.pop(property, None)
 
     def __hash__(self):
         return hash((hash(self.name), hash(self.gecos)))

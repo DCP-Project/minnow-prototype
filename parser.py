@@ -116,7 +116,7 @@ class Frame(BaseFrame):
         llen = 3 + len(source) + 1 + len(target) + 1 + len(command) + 1 + 2
 
         if len(kval) > 0:
-            llen += sum(sum((len(k)+len(v2)+2) for v2 in v) for k, v in 
+            llen += sum(sum((len(k)+len(v2)+2) for v2 in v) for k, v in
                             kval.items()) - 1
 
         return llen
@@ -207,7 +207,7 @@ class JSONFrame(BaseFrame):
 
             # Exclude trailing comma
             baselen -= 1
-        
+
         return baselen
 
     def __repr__(self):
@@ -223,7 +223,7 @@ class Multipart:
         self.recieved = 0
         self.len = 0
         self.data = defaultdict(list)
-    
+
     def recieve(self, key, data):
         self.recieved += 1
         if self.recieved > self.total:

@@ -63,28 +63,28 @@ class BaseACL:
             acl = self.acls(acl)
 
         if acl in self.acl_map:
-            self.acl_map[acl.name].modify(*item)
+            self.acl_map[acl.value].modify(*item)
         else:
-            self.acl_map[acl.name] = ACL(*item)
+            self.acl_map[acl.value] = ACL(*item)
 
     def __getitem__(self, acl):
-        if not hasattr(acl, 'name'):
+        if not hasattr(acl, 'value'):
             acl = self.acls(acl)
 
-        item = self.acl_map[acl.name]
+        item = self.acl_map[acl.value]
         return (item.time, item.reason)
 
     def __delitem__(self, acl):
-        if not hasattr(acl, 'name'):
+        if not hasattr(acl, 'value'):
             acl = self.acls(acl)
 
-        del self.acl_map[acl.name]
+        del self.acl_map[acl.value]
 
     def __contains__(self, acl):
-        if not hasattr(acl, 'name'):
+        if not hasattr(acl, 'value'):
             acl = self.acls(acl)
 
-        return acl.name in self.acl_map
+        return acl.value in self.acl_map
 
     def __iter__(self):
         return iter(self.acl_map)
