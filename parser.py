@@ -39,8 +39,9 @@ class BaseFrame:
 class Frame(BaseFrame):
     terminator = b'\0\0'
 
-    check_null = (lambda ch: ch != '\0')
-    get_next = (lambda : reduce(concat, takewhile(check_null, frame_iter)))
+    @staticmethod
+    def get_next(iterator):
+        return reduce(concat, takewhile(lambda c: c != '\0', iterator))
 
     @classmethod
     def parse(cls, text):
@@ -56,37 +57,38 @@ class Frame(BaseFrame):
             # Grab our iterator for the frame
             text = text.decode('utf-8', 'replace')
         except Exception as e:
-            raise ParserError('Couldn\'t decode text: ' + str(e))
+            raise ParserError('Couldn\'t decode text: ' + str(e)) from e
+
+        print(repr(text))
+
+        llen = len(text) - 1
+        frame_iter = islice(text, 3, llen)
+        llen -= 3 
+
+        print("Text length", len(text))
+        print("line length", llen)
 
         try:
-            llen = len(text) - 2
-            frame_iter = islice(text, 3, llen)
-            llen -= 3
-
-            source = get_next()
-            llen -= len(source) - 1
-
-            target = get_next()
-            llen -= len(target) - 1
-
-            command = get_next()
-            llen -= len(target) - 1
+            source = cls.get_next(frame_iter)
+            target = cls.get_next(frame_iter)
+            command = cls.get_next(frame_iter)
         except Exception as e:
-            raise ParserError('Invalid opening header')
+            raise ParserError('Invalid opening header') from e
+
+        llen -= len(source) + len(target) + len(command) + 3
 
         kval = defaultdict(list)
         try:
             kval = defaultdict(list)
             while llen > 0:
-                key = get_next()
-                llen -= len(key) - 1
+                key = cls.get_next(frame_iter)
+                value = cls.get_next(frame_iter)
 
-                value = get_next()
-                llen -= len(key) - 1
+                llen -= len(key) + len(value) + 2
 
                 kval[key].append(value)
-        except ParserError:
-            raise ParserError('Invalid keys/values')
+        except Exception as e:
+            raise ParserError('Invalid keys/values') from e
 
         return cls(source, target, command, kval)
 
@@ -151,7 +153,7 @@ class JSONFrame(BaseFrame):
         try:
             load = json.loads(text)
         except Exception as e:
-            raise ParserSizeError(str(e))
+            raise ParserSizeError(str(e)) from e
 
         try:
             header = load[0]
@@ -160,7 +162,7 @@ class JSONFrame(BaseFrame):
             target = header['target']
             command = header['command']
         except Exception as e:
-            raise ParserInvalidError('Bad JSON frame header')
+            raise ParserInvalidError('Bad JSON frame header') from e
 
         try:
             kval = defaultdict(list, (load[1] if len(load) > 1 else {}))
@@ -174,7 +176,7 @@ class JSONFrame(BaseFrame):
                     if not isinstance(val2, str):
                         raise ParserInvalidError('Value in list not a str')
         except Exception as e:
-            raise ParserInvalidError('Bad JSON frame key/values')
+            raise ParserInvalidError('Bad JSON frame key/values') from e
 
         return cls(source, target, command, kval)
 
