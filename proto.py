@@ -22,10 +22,14 @@ def rdns_check(ip, future):
         res = yield from loop.getaddrinfo(host, None, family=socket.AF_UNSPEC,
                                           type=socket.SOCK_STREAM,
                                           proto=socket.SOL_TCP)
+        if future.cancelled():
+            return
         future.set_result(host if ip in (x[4][0] for x in res) else ip)
     except Exception as e:
         logger.info('DNS resolver error')
         traceback.print_exc()
+        if future.cancelled():
+            return
         future.set_result(ip)
 
 class DCPBaseProto(asyncio.Protocol):
@@ -60,6 +64,8 @@ class DCPBaseProto(asyncio.Protocol):
         self.multipart = dict()
 
     def set_host(self, future):
+        if future.cancelled():
+            return
         logger.info('Host for %r set to [%s]', self.peername, future.result())
         self.host = future.result()
 
@@ -110,6 +116,7 @@ class DCPBaseProto(asyncio.Protocol):
             except ParserError as e:
                 logger.exception('Parser failure')
                 self.error('*', 'Parser failure', {'cause' : [str(e)]}, False)
+                continue
 
             self.server.line_queue.append((self, frame))
 
