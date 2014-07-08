@@ -70,7 +70,7 @@ class DCPServer:
         proto.error(command, reason, fatal, extargs)
 
     def _get_func(self, proto, line):
-        command = line.command.replace('-', '_')
+        command = line.command.replace('-', '_').lower()
         func = getattr(self, 'cmd_' + command, None)
         if func is None:
             self.error(proto, line.command, 'No such command', False)
