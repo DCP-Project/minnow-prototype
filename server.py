@@ -56,7 +56,8 @@ class DCPServer:
         except Exception as e:
             logger.exception('Could not read MOTD')
 
-    def error(self, dest, command, reason, fatal=True, extargs=None):
+    def error(self, dest, command, reason, fatal=True, extargs=None,
+              source=None):
         if hasattr(dest, 'proto'):
             proto = dest.proto
         elif hasattr(dest, 'error'):
@@ -67,7 +68,7 @@ class DCPServer:
             logger.debug('Fatal error encountered for client %r (%s: %s [%r])',
                          proto.peername, command, reason, extargs)
 
-        proto.error(command, reason, fatal, extargs)
+        proto.error(command, reason, fatal, extargs, source)
 
     def _get_func(self, proto, line):
         command = line.command.replace('-', '_').lower()

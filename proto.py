@@ -212,7 +212,7 @@ class DCPBaseProto(asyncio.Protocol):
                 del kval['total']
                 del kval['size']
 
-    def error(self, command, reason, fatal=True, extargs=None):
+    def error(self, command, reason, fatal=True, extargs=None, source=None):
         if not self.transport:
             return
 
@@ -223,7 +223,10 @@ class DCPBaseProto(asyncio.Protocol):
         if extargs:
             kval.update(extargs)
 
-        self.send(self.server, self.user, 'error', kval)
+        if not source:
+            source = self.server
+
+        self.send(source, self.user, 'error', kval)
 
         if fatal:
             self.transport.close()
