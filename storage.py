@@ -89,25 +89,38 @@ class BaseStorage:
         self.filename = filename
         self.cls = cls
 
+        # Cache
+        self.cache = dict()
+
     def get(self, key):
+        if key in self.cache:
+            return self.cache[key]
+
         with open_db(self.filename) as db:
             item = db.get(key, None)
-
-            print(dir(item))
 
             if item and item.version < self.cls.version:
                 db[key] = item = self.cls.upgrade(item)
 
+        self.cache[key] = item
+
         return item
 
     def add(self, key, *args, **kwargs):
+        # Invalidate the cache
+        self.cache.pop(key, None)
+
         item = self.cls(*args, **kwargs)
         with open_db(self.filename) as db:
             db[key] = item
 
+        self.cache[key] = item
+
     def modify(self, key, **kwargs):
-        with open_db(self.filename) as db:
-            item = db.get(key, None)
+        item = self.cache.pop(key, None)
+        if not item:
+            with open_db(self.filename) as db:
+                item = db.get(key, None)
 
         if item is None:
             return
@@ -118,9 +131,19 @@ class BaseStorage:
         with open_db(self.filename) as db:
             db[key] = item
 
+        self.cache[key] = item
+
     def delete(self, key):
+        self.cache.pop(key, None)
+
         with open_db(self.filename) as db:
             db.pop(key, None)
+
+    def invalidate(self, key):
+        self.cache.pop(key)
+
+    def invalidate_all(self, key):
+        self.cache.clear()
 
 
 class UserStorage(BaseStorage):
@@ -130,6 +153,7 @@ class UserStorage(BaseStorage):
     def add(self, key, *args, **kwargs):
         args = (round(time.time()),) + args
         super().add(key, *args, **kwargs)
+
 
 class GroupStorage(BaseStorage):
     def __init__(self, filename='groups.db'):
