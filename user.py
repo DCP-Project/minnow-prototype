@@ -34,5 +34,12 @@ class User:
     def message(self, source, message):
         self.send(source, self, 'message', {'body' : message})
 
+
+    def call_later(self, name, delay, callback, *args):
+        return self.proto.call_later(name, delay, callback, *args)
+
+    def call_at(self, name, when, callback, *args):
+        return self.proto.call_at(name, when, callback, *args)
+
     def __hash__(self):
         return hash((hash(self.name), hash(self.gecos)))

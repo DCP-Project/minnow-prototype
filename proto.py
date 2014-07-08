@@ -231,6 +231,16 @@ class DCPBaseProto(asyncio.Protocol):
         if fatal:
             self.transport.close()
 
+    def call_later(self, name, delay, callback, *args):
+        loop = asyncio.get_event_loop()
+        self.proto.callback[name] = loop.call_later(delay, callback, *args)
+        return self.proto.callback[name]
+
+    def call_at(self, name, when, callback, *args):
+        loop = asyncio.get_event_loop()
+        self.proto.callback[name] = loop.call_at(when, callback, *args)
+        return self.proto.callback[name]
+
 
 class DCPProto(DCPBaseProto):
     def __init__(self, server):
