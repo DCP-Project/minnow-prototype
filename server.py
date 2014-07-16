@@ -15,7 +15,7 @@ import traceback
 
 from user import User
 from group import Group
-from storage import UserStorage, GroupStorage
+from storage import DCPAsyncStorage # UserStorage, GroupStorage
 from settings import *
 from errors import *
 import parser
@@ -40,7 +40,7 @@ class DCPServer:
         self.users = dict()
         self.groups = dict()
 
-        self.user_store = UserStorage()
+        self.user_store = DCPAsyncStorage('store.db')
 
         self.line_queue = asyncio.Queue()
 
@@ -166,7 +166,10 @@ class DCPServer:
                        {'handle' : [name]})
             return False
 
-        if self.user_store.get(name) is not None:
+        f = asyncio.Future()
+        self.user_store.get_user(name, f)
+        yield from f
+        if f.result() is not None:
             self.error(proto, line.command, 'Handle already registered', False,
                        {'handle' : [name]})
             return False
@@ -184,7 +187,7 @@ class DCPServer:
         password = crypt(password, mksalt())
 
         # Bang
-        self.user_store.add(name, password, gecos, set())
+        self.user_store.create_user(name, password, gecos)
 
         return True
 
@@ -221,14 +224,17 @@ class DCPServer:
             return
 
         # Retrieve the user info
-        uinfo = self.user_store.get(name)
+        f = asyncio.Future()
+        self.user_store.get_user(name, f)
+        yield from f
+        uinfo = f.result()
         if uinfo is None:
             self.error(proto, line.command, 'You are not registered with ' \
                        'the server', False, {'handle' : [name]})
             return
 
-        password = crypt(line.kval.get('password', ['*'])[0], uinfo.hash)
-        if not compare_digest(password, uinfo.hash):
+        password = crypt(line.kval.get('password', ['*'])[0], uinfo['password'])
+        if not compare_digest(password, uinfo['password']):
             self.error(proto, line.command, 'Invalid password')
             return
 
