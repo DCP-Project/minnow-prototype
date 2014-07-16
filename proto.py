@@ -118,10 +118,7 @@ class DCPBaseProto(asyncio.Protocol):
                 self.error('*', 'Parser failure', {'cause' : [str(e)]}, False)
                 continue
 
-            self.server.line_queue.append((self, frame))
-
-        if not self.server.waiter.done():
-            self.server.waiter.set_result(None)
+            self.server.line_queue.put((self, frame))
 
     @staticmethod
     def _proto_name(target):

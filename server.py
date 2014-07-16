@@ -1,3 +1,4 @@
+import enum
 import time
 import asyncio
 import re
@@ -41,7 +42,7 @@ class DCPServer:
 
         self.user_store = UserStorage()
 
-        self.line_queue = deque()
+        self.line_queue = asyncio.Queue()
 
         self.motd = None
         self.motd_load()
@@ -94,26 +95,23 @@ class DCPServer:
     @asyncio.coroutine
     def process(self):
         while True:
-            self.waiter = asyncio.Future()
-            yield from self.waiter
-            while len(self.line_queue):
-                proto, line = self.line_queue.popleft()
-                proto_or_user = (proto.user if proto.user else proto)
-                try:
-                    func = self._get_func(proto, line)
-                    if not func: continue
-                    res = func(proto_or_user, line)
-                    if (isinstance(res, asyncio.Future) or
-                        inspect.isgenerator(res)):
-                        yield from res
-                except (UserError, GroupError) as e:
-                    logger.warn('Possible bug hit! (Exception below)')
-                    traceback.print_exc()
-                    self.error(proto, line.command, str(e), False)
-                except Exception as e:
-                    logger.exception('Bug hit! (Exception below)')
-                    self.error(proto, line.command, 'Internal server ' \
-                            'error (this isn\'t your fault)')
+            proto, line = (yield from self.line_queue.get())
+            proto_or_user = (proto.user if proto.user else proto)
+            try:
+                func = self._get_func(proto, line)
+                if not func: continue
+                res = func(proto_or_user, line)
+                if (isinstance(res, asyncio.Future) or
+                    inspect.isgenerator(res)):
+                    yield from res
+            except (UserError, GroupError) as e:
+                logger.warn('Possible bug hit! (Exception below)')
+                traceback.print_exc()
+                self.error(proto, line.command, str(e), False)
+            except Exception as e:
+                logger.exception('Bug hit! (Exception below)')
+                self.error(proto, line.command, 'Internal server error (this ' \
+                        'isn\'t your fault)')
 
     def user_enter(self, proto, name, gecos, acl, config, options):
         user = User(proto, name, gecos, acl, config, None, options)
