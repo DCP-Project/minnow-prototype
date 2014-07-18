@@ -166,9 +166,7 @@ class DCPServer:
                        {'handle' : [name]})
             return False
 
-        f = asyncio.Future()
-        self.user_store.get_user(name, f)
-        yield from f
+        f = yield from self.user_store.get_user(name)
         if f.result() is not None:
             self.error(proto, line.command, 'Handle already registered', False,
                        {'handle' : [name]})
@@ -224,9 +222,7 @@ class DCPServer:
             return
 
         # Retrieve the user info
-        f = asyncio.Future()
-        self.user_store.get_user(name, f)
-        yield from f
+        f = yield from self.user_store.get_user(name)
         uinfo = f.result()
         if uinfo is None:
             self.error(proto, line.command, 'You are not registered with ' \

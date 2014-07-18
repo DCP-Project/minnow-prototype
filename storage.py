@@ -1,10 +1,82 @@
 import asyncio
 import sqlite3
 from collections import OrderedDict
+from concurrent.futures import Future
 from logging import getLogger
-from multiprocessing import Process, Queue, Manager
-from threading import Thread, RLock
+from multiprocessing import Queue, Manager
+from multiprocessing.pool import ThreadPool
+from threading import Lock, Thread
 from uuid import uuid4
+
+
+class Counter:
+    __slots__ = ['counter_lock', 'counter']
+
+    def __init__(self):
+        self.counter_lock = Lock()
+        self.counter = 0
+
+    def inc(self):
+        with self.counter_lock:
+            self.counter += 1
+            return self.counter
+
+    def dec(self):
+        with self.counter_lock:
+            self.counter -= 1
+            return self.counter
+
+    def get(self):
+        with self.counter_lock:
+            return self.counter
+
+
+waiting = Lock()
+accessing = Lock()
+nreaders = Counter()
+
+
+class AsyncSafeRow:
+    def __init__(self, cursor, row):
+        self.contents = OrderedDict()
+        for index, colname in enumerate(cursor.description):
+            self.contents[colname[0]] = row[index]
+
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            return self.contents[self.contents.keys[item]]
+        else:
+            return self.contents[item]
+
+
+class Database:
+    def __init__(self, name='store.db'):
+        self.conn = sqlite3.connect(name)
+        self.conn.row_factory = AsyncSafeRow
+
+    def modify(self, *data):
+        with waiting:
+            accessing.acquire()
+
+        try:
+            with self.conn:
+                return self.conn.execute(*data)
+        finally:
+            accessing.release()
+
+    def read(self, *data):
+        with waiting:
+            val = nreaders.inc()
+
+            if val == 1:
+                accessing.acquire()
+
+        try:
+            return self.conn.execute(*data)
+        finally:
+            val = nreaders.dec()
+            if val == 0:
+                accessing.release()
 
 # Statements
 s_get_user = 'SELECT "user".* FROM "user" WHERE "name"=?'
@@ -72,217 +144,133 @@ s_del_group_acl_all = 'DELETE FROM "acl_group" WHERE "acl_group".group_id IN ' \
 s_del_group = 'DELETE FROM "group" WHERE "group".name=?'
 
 
-class AsyncSafeRow:
-    def __init__(self, cursor, row):
-        self.contents = OrderedDict()
-        for index, colname in enumerate(cursor.description):
-            self.contents[colname[0]] = row[index]
-
-    def __getitem__(self, item):
-        if isinstance(item, int):
-            return self.contents[self.contents.keys[item]]
-        else:
-            return self.contents[item]
-
 class DCPStorage:
     def __init__(self, dbname, schema='schema.sql'):
-        self.conn = sqlite3.connect(dbname)
-        self.conn.row_factory = AsyncSafeRow
+        self.conn = Database(dbname)
         self.log = getLogger('DCPStorage')
 
-        with open('schema.sql', 'r') as f:
+        with open(schema, 'r') as f:
             self.conn.executescript(''.join(f.readlines()))
 
-    def __del__(self):
-        self.conn.close()
+    #def __del__(self):
+    #    self.conn.close()
 
-    def close(self):
-        self.conn.commit()
-        self.conn.close()
+    #def close(self):
+    #    self.conn.commit()
+    #    self.conn.close()
 
     def get_user(self, name):
-        self.log.critical('get user')
-        c = self.conn.execute(s_get_user, (name,))
+        c = self.conn.read(s_get_user, (name,))
         return c.fetchone()
 
     def get_user_acl(self, name):
-        c = self.conn.execute(get_user_acl, (name,))
+        c = self.conn.read(get_user_acl, (name,))
         return c.fetchall()
 
     def get_user_config(self, name):
-        c = self.conn.execute(s_get_user_config, (name,))
+        c = self.conn.read(s_get_user_config, (name,))
         return c.fetchall()
 
     def get_group(self, name):
-        c = self.conn.execute(s_get_group, (name,)),
+        c = self.conn.read(s_get_group, (name,)),
         return c.fetchone()
 
     def get_group_acl(self, name):
-        c = self.conn.execute(s_get_group_acl, (name,))
+        c = self.conn.read(s_get_group_acl, (name,))
         return c.fetchall()
 
     def get_group_acl_user(self, name, username):
-        c = self.conn.execute(s_get_group_acl_user, (name,username))
+        c = self.conn.read(s_get_group_acl_user, (name,username))
         return c.fetchall()
 
     def get_group_config(self, name):
-        c = self.conn.execute(s_get_group_config, (name,))
+        c = self.conn.read(s_get_group_config, (name,))
         return c.fetchall()
 
     def create_user(self, name, gecos, password):
         self.log.critical('creating user')
-        with self.conn:
-            self.log.critical('in context')
-            c = self.conn.execute(s_create_user,
-                                  (name, gecos, password))
-            self.log.critical('executed with', name, gecos, password)
-        self.log.critical('done')
+        c = self.conn.modify(s_create_user,
+                             (name, gecos, password))
+        self.log.critical('executed with', name, gecos, password)
         return c
 
     def create_group(self, name):
-        with self.conn:
-            c = self.conn.execute(s_create_group, (name,))
-        return c
+        return self.conn.modify(s_create_group, (name,))
 
     def create_user_acl(self, name, acl, setter=None):
-        with self.conn:
-            c = self.conn.execute(s_create_user_acl, (acl,name))
-        return c
+        return self.conn.modify(s_create_user_acl, (acl,name))
 
     def create_group_acl(self, name, username, acl, setter=None):
-        with self.conn:
-            c = self.conn.execute(s_create_group_acl,
-                                  (acl, name, username, setter))
-        return c
+        return self.conn.modify(s_create_group_acl,
+                                (acl, name, username, setter))
 
     def set_user(self, name, *, gecos=None, password=None):
-        with self.conn:
-            c = self.conn.execute(s_set_user, (gecos, password))
-        return c
+        return self.conn.modify(s_set_user, (gecos, password))
 
     def set_config_user(self, name, config, value=None, setter=None):
-        with self.conn:
-            c = self.conn.execute(s_set_config_user, (config, value, name))
-        return c
+        return self.conn.modify(s_set_config_user, (config, value, name))
 
     def create_config_user(self, name, config, value=None, setter=None):
         return self.set_config_user(name, config, value, setter)
 
     def set_config_group(self, name, username, config, value=None, setter=None):
-        with self.conn:
-            c = self.conn.execute(s_set_config_group,
-                                  (config, value, name, username))
-        return c
+        return self.conn.modify(s_set_config_group,
+                                (config, value, name, username))
     
     def create_config_group(self, name, username, config, value=None, setter=None):
         return self.set_config_group(c)
 
     def del_user(self, name):
-        with self.conn:
-            c = self.conn.execute(s_del_user, (name,))
-        return c
+        return self.conn.modify(s_del_user, (name,))
 
     def del_user_acl(self, name, acl):
-        c = self.conn.execute(s_del_user_acl, (acl,name))
-        self.conn.commit()
-        return c
+        return self.conn.modify(s_del_user_acl, (acl,name))
 
     def del_user_acl_all(self, name):
-        c = self.conn.execute('DELETE FROM "acl_user" WHERE ' \
-                              '"acl_user".user_id IN (SELECT "user".id FROM ' \
-                              '"user" WHERE "user".name=?)', (name,))
-        self.conn.commit()
-        return c
+        return self.conn.modify(s_del_user_acl_all, (name,))
 
     def del_group_acl(self, name, username, acl):
-        c = self.conn.execute('DELETE FROM "acl_group" WHERE "acl_group".acl=' \
-                              '? AND "acl_group".user_id IN (SELECT ' \
-                              '"user".id FROM "user" WHERE "user".name=?) ' \
-                              'AND "acl_group".group_id IN (SELECT ' \
-                              '"group".id FROM "group" WHERE "group".name=?)',
-                              (acl, username, name))
-        self.conn.commit()
-        return c
+        return self.conn.modify(s_del_group_acl, (acl, username, name))
 
     def del_group_acl_all(self, name):
-        c = self.conn.execute('DELETE FROM "acl_group" WHERE ' \
-                              '"acl_group".group_id IN (SELECT "group".id ' \
-                              'FROM "group" WHERE "group".name=?)', (name,))
-        self.conn.commit()
-        return c
+        return self.conn.modify(s_del_group_acl_all, (name,))
 
     def del_group(self, name):
-        c = self.conn.execute('DELETE FROM "group" WHERE "group".name=?',
-                              (name,))
-        self.conn.commit()
-        return c
+        return self.conn.modify(s_del_group, (name,))
 
 
 class EngineNotStartedException(RuntimeError):
     pass
 
 
-futures = dict()
-flock = RLock()
-requests = None
-responses = None
-
-def db_process(reqq, respq, store_name):
+def db_process(store_name, call, future, *args):
     storage = DCPStorage(store_name)
-    log = getLogger('database worker process')
+    log = getLogger('database worker thread')
 
-    while True:
-        (rid, call, *args) = reqq.get()
-        try:
-            meth = getattr(storage, call)
-            result = meth(*args)
-            respq.put( (rid, result) )
-        except AttributeError as ex:
-            log.exception('invalid call')
-            respq.put( (rid, None) )
-
-
-def db_listen(respq, loop):
-    while True:
-        (rid, result) = respq.get()
-        with flock:
-            f = futures.pop(rid)
-        if f and not f.cancelled():
-            loop.call_soon_threadsafe(f.set_result, result)
+    try:
+        meth = getattr(storage, call)
+        res = meth(*args)
+        if future:
+            future.set_result(res)
+    except AttributeError as ex:
+        log.exception('invalid call')
+        if future:
+            future.set_result(None)
+    except e:
+        log.exception('while running %s', call)
+        if future:
+            future.set_exception(e)
 
 
 class DCPAsyncStorage:
-    def __init__(self, dbname):
-        global requests, responses
-        m = Manager()
-        requests = m.Queue()
-        responses = m.Queue()
+    def __init__(self, dbname='store.db'):
+        self.pool = ThreadPool()
+        self.dbname = dbname
 
-        p = Process(target=db_process, name='minnow: Data process',
-                    args=(requests, responses, dbname,) )
-        p.start()
-        t = Thread(target=db_listen, name='async store retrieval thread',
-                   args=(responses, asyncio.get_event_loop(),) )
-        t.start()
-
-    def __make_rid(self):
-        rid = uuid4()
-
-        if rid in futures:
-            raise RuntimeError('dupe')
-
-        return rid
-
-    def get_user(self, name, future):
-        rid = self.__make_rid()
-        with flock:
-            futures[rid] = future
-
-        requests.put( (rid, 'get_user', name) )
+    def get_user(self, name):
+        future = Future()
+        self.pool.apply_async(db_process, self.dbname, future, 'get_user', name)
+        return asyncio.wrap_future(future)
 
     def create_user(self, name, gecos, password):
-        rid = self.__make_rid()
-        with flock:
-            futures[rid] = None
-
-        requests.put( (rid, 'create_user', name, gecos, password) )
+        self.pool.apply_async(db_process, self.dbname, None, 'create_user', name, gecos, password)
