@@ -144,9 +144,9 @@ s_del_group_acl_all = 'DELETE FROM "acl_group" WHERE "acl_group".group_id IN ' \
 s_del_group = 'DELETE FROM "group" WHERE "group".name=?'
 
 
-class DCPStorage:
+class DCPStorage(Database):
     def __init__(self, dbname, schema='schema.sql'):
-        self.conn = Database(dbname)
+        super().__init__(self, Database(dbname))
         self.log = getLogger('DCPStorage')
 
         with open(schema, 'r') as f:
@@ -160,83 +160,83 @@ class DCPStorage:
     #    self.conn.close()
 
     def get_user(self, name):
-        c = self.conn.read(s_get_user, (name,))
+        c = self.read(s_get_user, (name,))
         return c.fetchone()
 
     def get_user_acl(self, name):
-        c = self.conn.read(get_user_acl, (name,))
+        c = self.read(get_user_acl, (name,))
         return c.fetchall()
 
     def get_user_config(self, name):
-        c = self.conn.read(s_get_user_config, (name,))
+        c = self.read(s_get_user_config, (name,))
         return c.fetchall()
 
     def get_group(self, name):
-        c = self.conn.read(s_get_group, (name,)),
+        c = self.read(s_get_group, (name,)),
         return c.fetchone()
 
     def get_group_acl(self, name):
-        c = self.conn.read(s_get_group_acl, (name,))
+        c = self.read(s_get_group_acl, (name,))
         return c.fetchall()
 
     def get_group_acl_user(self, name, username):
-        c = self.conn.read(s_get_group_acl_user, (name,username))
+        c = self.read(s_get_group_acl_user, (name,username))
         return c.fetchall()
 
     def get_group_config(self, name):
-        c = self.conn.read(s_get_group_config, (name,))
+        c = self.read(s_get_group_config, (name,))
         return c.fetchall()
 
     def create_user(self, name, gecos, password):
         self.log.critical('creating user')
-        c = self.conn.modify(s_create_user,
+        c = self.modify(s_create_user,
                              (name, gecos, password))
         self.log.critical('executed with', name, gecos, password)
         return c
 
     def create_group(self, name):
-        return self.conn.modify(s_create_group, (name,))
+        return self.modify(s_create_group, (name,))
 
     def create_user_acl(self, name, acl, setter=None):
-        return self.conn.modify(s_create_user_acl, (acl,name))
+        return self.modify(s_create_user_acl, (acl,name))
 
     def create_group_acl(self, name, username, acl, setter=None):
-        return self.conn.modify(s_create_group_acl,
+        return self.modify(s_create_group_acl,
                                 (acl, name, username, setter))
 
     def set_user(self, name, *, gecos=None, password=None):
-        return self.conn.modify(s_set_user, (gecos, password))
+        return self.modify(s_set_user, (gecos, password))
 
     def set_config_user(self, name, config, value=None, setter=None):
-        return self.conn.modify(s_set_config_user, (config, value, name))
+        return self.modify(s_set_config_user, (config, value, name))
 
     def create_config_user(self, name, config, value=None, setter=None):
         return self.set_config_user(name, config, value, setter)
 
     def set_config_group(self, name, username, config, value=None, setter=None):
-        return self.conn.modify(s_set_config_group,
+        return self.modify(s_set_config_group,
                                 (config, value, name, username))
     
     def create_config_group(self, name, username, config, value=None, setter=None):
         return self.set_config_group(c)
 
     def del_user(self, name):
-        return self.conn.modify(s_del_user, (name,))
+        return self.modify(s_del_user, (name,))
 
     def del_user_acl(self, name, acl):
-        return self.conn.modify(s_del_user_acl, (acl,name))
+        return self.modify(s_del_user_acl, (acl,name))
 
     def del_user_acl_all(self, name):
-        return self.conn.modify(s_del_user_acl_all, (name,))
+        return self.modify(s_del_user_acl_all, (name,))
 
     def del_group_acl(self, name, username, acl):
-        return self.conn.modify(s_del_group_acl, (acl, username, name))
+        return self.modify(s_del_group_acl, (acl, username, name))
 
     def del_group_acl_all(self, name):
-        return self.conn.modify(s_del_group_acl_all, (name,))
+        return self.modify(s_del_group_acl_all, (name,))
 
     def del_group(self, name):
-        return self.conn.modify(s_del_group, (name,))
+        return self.modify(s_del_group, (name,))
 
 
 class EngineNotStartedException(RuntimeError):
