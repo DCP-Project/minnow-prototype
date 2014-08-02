@@ -59,14 +59,9 @@ class Frame(BaseFrame):
         except Exception as e:
             raise ParserError('Couldn\'t decode text: ' + str(e)) from e
 
-        print(repr(text))
-
         llen = len(text) - 1
         frame_iter = islice(text, 3, llen)
         llen -= 3 
-
-        print("Text length", len(text))
-        print("line length", llen)
 
         try:
             source = cls.get_next(frame_iter)

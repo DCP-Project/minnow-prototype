@@ -45,3 +45,17 @@ class GroupAdditionError(GroupError):
 class GroupRemovalError(GroupError):
     pass
 
+
+class CommandError(Exception):
+    pass
+
+
+class CommandACLError(CommandError):
+    def __init__(self, acl, *args):
+        self.acl = acl
+        super().__init__(*args)
+
+
+class CommandNotImplementedError(CommandError, NotImplementedError):
+    pass
+
