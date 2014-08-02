@@ -96,9 +96,7 @@ class DCPServer:
     @asyncio.coroutine
     def process(self):
         while True:
-            print("Begin")
             proto, line = (yield from self.line_queue.get())
-            print(proto, line)
             try:
                 yield from self._call_func(proto, line)
             except (UserError, GroupError) as e:
