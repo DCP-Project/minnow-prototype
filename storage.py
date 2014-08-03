@@ -205,7 +205,7 @@ class ProtocolStorage:
     inter-dependent. """
 
     def __init__(self, dbname, schema='schema.sql'):
-        self.database = _database[dbname]
+        self.database = Database(dbname)
         self.log = getLogger(__name__ + '.ProtocolStorage')
 
         with open(schema, 'r') as f:
