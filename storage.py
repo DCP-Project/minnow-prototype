@@ -31,6 +31,20 @@ class Counter:
         with self.counter_lock:
             return self.counter
 
+
+class DatabaseLocks:
+    """ The locks for the database - one of these instances per db """
+
+    __slots__ = ['waiting', 'accessing', 'nreaders']
+
+    def __init__(self):
+        self.locks.waiting = Lock()
+        self.locks.accessing = Lock()
+        self.locks.nreaders = Counter()
+
+_db_locks = defaultdict(DatabaseLocks)
+
+
 class Database:
     """ A class providing readers/writers locks to an SQLite database.
     As many readers as one wants can use the db, but writers only go one at a
@@ -39,17 +53,15 @@ class Database:
     Algorithim based on:
     http://en.wikipedia.org/wiki/Readers%E2%80%93writers_problem - see
     solution #3. Note that we use locks, NOT semaphores.
-
-    NB: Only instantiate once per db! More than that is not necessary.
     """
 
-    def __init__(self, name='store.db'):
-        self.conn = sqlite3.connect(name)
+    def __init__(self, dbname='store.db'):
+        # check_same_thread is acceptable because this limitation has not
+        # existed since time immemorial.
+        self.conn = sqlite3.connect(dbname, check_same_thread=False)
         self.conn.row_factory = AsyncSafeRow
 
-        self.waiting = Lock()
-        self.accessing = Lock()
-        self.nreaders = Counter()
+        self.locks = _db_locks[dbname]
 
     def __del__(self):
         self.conn.close()
@@ -57,8 +69,8 @@ class Database:
     def close(self):
         """ Called to close the database. Acquires the waiting locks, commits
         all outstanding transactions, then poof. """
-        with self.waiting:
-            with self.accessing:
+        with self.locks.waiting:
+            with self.locks.accessing:
                 self.conn.commit()
                 self.conn.close()
 
@@ -70,14 +82,14 @@ class Database:
         else:
             func = getattr(self.conn, func)
 
-        with self.waiting:
-            self.accessing.acquire()
+        with self.locks.waiting:
+            self.locks.accessing.acquire()
 
         try:
             with self.conn:
                 return func(*data)
         finally:
-            self.accessing.release()
+            self.locks.accessing.release()
 
     def read(self, *data, func=None):
         """ Call this if your statement reads from the database """
@@ -86,18 +98,18 @@ class Database:
         else:
             func = getattr(self.conn, func)
 
-        with self.waiting:
-            val = self.nreaders.inc()
+        with self.locks.waiting:
+            val = self.locks.nreaders.inc()
 
             if val == 1:
-                self.accessing.acquire()
+                self.locks.accessing.acquire()
 
         try:
             return func(*data)
         finally:
-            val = self.nreaders.dec()
+            val = self.locks.nreaders.dec()
             if val == 0:
-                self.accessing.release()
+                self.locks.accessing.release()
 
 
 class AsyncSafeRow:
@@ -193,7 +205,7 @@ class ProtocolStorage:
     inter-dependent. """
 
     def __init__(self, dbname, schema='schema.sql'):
-        self.database = Database(dbname)
+        self.database = _database[dbname]
         self.log = getLogger(__name__ + '.ProtocolStorage')
 
         with open(schema, 'r') as f:
@@ -299,9 +311,7 @@ class AsyncStorage:
 
         try:
             method_call = getattr(storage, method_call)
-            res = method_call(*args)
-            print(method_call, res)
-            return res 
+            return method_call(*args)
         finally:
             # Place back into the pool
             proto_storage_pool.put(storage)
