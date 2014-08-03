@@ -44,9 +44,7 @@ nosetests.xml
 *~
 
 # Ignore various local db's
-users.db
-groups.db
-rosters.db
+store.db
 
 # Ignore the certificate
 cert.pem

@@ -22,8 +22,7 @@ class Signon(Command):
             return
 
         # Retrieve the user info
-        f = yield from server.user_store.get_user(name)
-        uinfo = f.result()
+        uinfo = yield from server.user_store.get_user(name)
         if uinfo is None:
             server.error(proto, line.command, 'You are not registered with ' \
                        'the server', False, {'handle' : [name]})

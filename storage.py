@@ -1,15 +1,16 @@
 import asyncio
 import sqlite3
-from collections import OrderedDict
-from concurrent.futures import Future
+import queue
+from collections import OrderedDict, defaultdict
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 from logging import getLogger
-from multiprocessing import Queue, Manager
-from multiprocessing.pool import ThreadPool
-from threading import Lock, Thread
-from uuid import uuid4
+from functools import partial
 
 
 class Counter:
+    """ Atomic add/subtract-and-get class """
+
     __slots__ = ['counter_lock', 'counter']
 
     def __init__(self):
@@ -30,13 +31,84 @@ class Counter:
         with self.counter_lock:
             return self.counter
 
+class Database:
+    """ A class providing readers/writers locks to an SQLite database.
+    As many readers as one wants can use the db, but writers only go one at a
+    time, and block everything.
 
-waiting = Lock()
-accessing = Lock()
-nreaders = Counter()
+    Algorithim based on:
+    http://en.wikipedia.org/wiki/Readers%E2%80%93writers_problem - see
+    solution #3. Note that we use locks, NOT semaphores.
+
+    NB: Only instantiate once per db! More than that is not necessary.
+    """
+
+    def __init__(self, name='store.db'):
+        self.conn = sqlite3.connect(name)
+        self.conn.row_factory = AsyncSafeRow
+
+        self.waiting = Lock()
+        self.accessing = Lock()
+        self.nreaders = Counter()
+
+    def __del__(self):
+        self.conn.close()
+
+    def close(self):
+        """ Called to close the database. Acquires the waiting locks, commits
+        all outstanding transactions, then poof. """
+        with self.waiting:
+            with self.accessing:
+                self.conn.commit()
+                self.conn.close()
+
+    def modify(self, *data, func=None):
+        """ Call this if your statement even THINKS of writing to the
+        database. """
+        if func is None:
+            func = self.conn.execute
+        else:
+            func = getattr(self.conn, func)
+
+        with self.waiting:
+            self.accessing.acquire()
+
+        try:
+            with self.conn:
+                return func(*data)
+        finally:
+            self.accessing.release()
+
+    def read(self, *data, func=None):
+        """ Call this if your statement reads from the database """
+        if func is None:
+            func = self.conn.execute
+        else:
+            func = getattr(self.conn, func)
+
+        with self.waiting:
+            val = self.nreaders.inc()
+
+            if val == 1:
+                self.accessing.acquire()
+
+        try:
+            return func(*data)
+        finally:
+            val = self.nreaders.dec()
+            if val == 0:
+                self.accessing.release()
 
 
 class AsyncSafeRow:
+    """ An async-safe row (duh) designed to partially mimic the sqlite3 row
+    class.
+
+    This can probably go away soon since we are not bound by the limitations
+    of pickle for a while now (this went away during one of the redesigns of
+    this module)
+    """
+
     def __init__(self, cursor, row):
         self.contents = OrderedDict()
         for index, colname in enumerate(cursor.description):
@@ -48,35 +120,6 @@ class AsyncSafeRow:
         else:
             return self.contents[item]
 
-
-class Database:
-    def __init__(self, name='store.db'):
-        self.conn = sqlite3.connect(name)
-        self.conn.row_factory = AsyncSafeRow
-
-    def modify(self, *data):
-        with waiting:
-            accessing.acquire()
-
-        try:
-            with self.conn:
-                return self.conn.execute(*data)
-        finally:
-            accessing.release()
-
-    def read(self, *data):
-        with waiting:
-            val = nreaders.inc()
-
-            if val == 1:
-                accessing.acquire()
-
-        try:
-            return self.conn.execute(*data)
-        finally:
-            val = nreaders.dec()
-            if val == 0:
-                accessing.release()
 
 # Statements
 s_get_user = 'SELECT "user".* FROM "user" WHERE "name"=?'
@@ -144,134 +187,129 @@ s_del_group_acl_all = 'DELETE FROM "acl_group" WHERE "acl_group".group_id IN ' \
 s_del_group = 'DELETE FROM "group" WHERE "group".name=?'
 
 
-class DCPStorage(Database):
+class ProtocolStorage:
+    """ Basic protocol storage of DCP. Stores users, groups, user configs, and
+    (soon) roster data. This class is so big because DCP's storage is all
+    inter-dependent. """
+
     def __init__(self, dbname, schema='schema.sql'):
-        super().__init__(self, Database(dbname))
-        self.log = getLogger('DCPStorage')
+        self.database = Database(dbname)
+        self.log = getLogger(__name__ + '.ProtocolStorage')
 
         with open(schema, 'r') as f:
-            self.conn.executescript(''.join(f.readlines()))
-
-    #def __del__(self):
-    #    self.conn.close()
-
-    #def close(self):
-    #    self.conn.commit()
-    #    self.conn.close()
+            self.database.modify(f.read(), func='executescript')
 
     def get_user(self, name):
-        c = self.read(s_get_user, (name,))
+        c = self.database.read(s_get_user, (name,))
         return c.fetchone()
 
     def get_user_acl(self, name):
-        c = self.read(get_user_acl, (name,))
+        c = self.database.read(get_user_acl, (name,))
         return c.fetchall()
 
     def get_user_config(self, name):
-        c = self.read(s_get_user_config, (name,))
+        c = self.database.read(s_get_user_config, (name,))
         return c.fetchall()
 
     def get_group(self, name):
-        c = self.read(s_get_group, (name,)),
+        c = self.database.read(s_get_group, (name,)),
         return c.fetchone()
 
     def get_group_acl(self, name):
-        c = self.read(s_get_group_acl, (name,))
+        c = self.database.read(s_get_group_acl, (name,))
         return c.fetchall()
 
     def get_group_acl_user(self, name, username):
-        c = self.read(s_get_group_acl_user, (name,username))
+        c = self.database.read(s_get_group_acl_user, (name,username))
         return c.fetchall()
 
     def get_group_config(self, name):
-        c = self.read(s_get_group_config, (name,))
+        c = self.database.read(s_get_group_config, (name,))
         return c.fetchall()
 
     def create_user(self, name, gecos, password):
         self.log.critical('creating user')
-        c = self.modify(s_create_user,
+        c = self.database.modify(s_create_user,
                              (name, gecos, password))
         self.log.critical('executed with', name, gecos, password)
         return c
 
     def create_group(self, name):
-        return self.modify(s_create_group, (name,))
+        return self.database.modify(s_create_group, (name,))
 
     def create_user_acl(self, name, acl, setter=None):
-        return self.modify(s_create_user_acl, (acl,name))
+        return self.database.modify(s_create_user_acl, (acl,name))
 
     def create_group_acl(self, name, username, acl, setter=None):
-        return self.modify(s_create_group_acl,
+        return self.database.modify(s_create_group_acl,
                                 (acl, name, username, setter))
 
     def set_user(self, name, *, gecos=None, password=None):
-        return self.modify(s_set_user, (gecos, password))
+        return self.database.modify(s_set_user, (gecos, password))
 
     def set_config_user(self, name, config, value=None, setter=None):
-        return self.modify(s_set_config_user, (config, value, name))
+        return self.database.modify(s_set_config_user, (config, value, name))
 
     def create_config_user(self, name, config, value=None, setter=None):
         return self.set_config_user(name, config, value, setter)
 
     def set_config_group(self, name, username, config, value=None, setter=None):
-        return self.modify(s_set_config_group,
+        return self.database.modify(s_set_config_group,
                                 (config, value, name, username))
-    
+
     def create_config_group(self, name, username, config, value=None, setter=None):
         return self.set_config_group(c)
 
     def del_user(self, name):
-        return self.modify(s_del_user, (name,))
+        return self.database.modify(s_del_user, (name,))
 
     def del_user_acl(self, name, acl):
-        return self.modify(s_del_user_acl, (acl,name))
+        return self.database.modify(s_del_user_acl, (acl,name))
 
     def del_user_acl_all(self, name):
-        return self.modify(s_del_user_acl_all, (name,))
+        return self.database.modify(s_del_user_acl_all, (name,))
 
     def del_group_acl(self, name, username, acl):
-        return self.modify(s_del_group_acl, (acl, username, name))
+        return self.database.modify(s_del_group_acl, (acl, username, name))
 
     def del_group_acl_all(self, name):
-        return self.modify(s_del_group_acl_all, (name,))
+        return self.database.modify(s_del_group_acl_all, (name,))
 
     def del_group(self, name):
-        return self.modify(s_del_group, (name,))
+        return self.database.modify(s_del_group, (name,))
 
 
-class EngineNotStartedException(RuntimeError):
-    pass
+# The pool of cached DCP storage objects
+proto_storage_pool = queue.Queue()
+
+# The executor itself
+proto_storage_executor = ThreadPoolExecutor(32)
 
 
-def db_process(store_name, call, future, *args):
-    storage = DCPStorage(store_name)
-    log = getLogger('database worker thread')
-
-    try:
-        meth = getattr(storage, call)
-        res = meth(*args)
-        if future:
-            future.set_result(res)
-    except AttributeError as ex:
-        log.exception('invalid call')
-        if future:
-            future.set_result(None)
-    except e:
-        log.exception('while running %s', call)
-        if future:
-            future.set_exception(e)
-
-
-class DCPAsyncStorage:
-    def __init__(self, dbname='store.db'):
-        self.pool = ThreadPool()
+class AsyncStorage:
+    def __init__(self, storeclass, dbname):
+        self.storeclass = storeclass
         self.dbname = dbname
 
-    def get_user(self, name):
-        future = Future()
-        self.pool.apply_async(db_process, self.dbname, future, 'get_user', name)
-        return asyncio.wrap_future(future)
+    def run_callback(self, method_call, *args):
+        try:
+            storage = proto_storage_pool.get_nowait()
+        except queue.Empty:
+            storage = self.storeclass(self.dbname)
 
-    def create_user(self, name, gecos, password):
-        self.pool.apply_async(db_process, self.dbname, None, 'create_user', name, gecos, password)
+        try:
+            method_call = getattr(storage, method_call)
+            res = method_call(*args)
+            print(method_call, res)
+            return res 
+        finally:
+            # Place back into the pool
+            proto_storage_pool.put(storage)
 
+    def __getattr__(self, attr):
+        loop = asyncio.get_event_loop()
+        ret = partial(loop.run_in_executor, proto_storage_executor,
+                      self.run_callback, attr)
+
+        setattr(self, attr, ret)
+        return ret

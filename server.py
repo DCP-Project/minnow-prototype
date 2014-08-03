@@ -15,7 +15,7 @@ import traceback
 
 from user import User
 from group import Group
-from storage import DCPAsyncStorage # UserStorage, GroupStorage
+from storage import AsyncStorage, ProtocolStorage
 from settings import *
 from errors import *
 
@@ -42,7 +42,7 @@ class DCPServer:
         self.users = dict()
         self.groups = dict()
 
-        self.user_store = DCPAsyncStorage('store.db')
+        self.user_store = AsyncStorage(ProtocolStorage, 'store.db')
 
         self.line_queue = asyncio.Queue()
 
@@ -65,6 +65,8 @@ class DCPServer:
             proto = dest.proto
         elif hasattr(dest, 'error'):
             proto = dest
+        else:
+            raise Exception('No proto in dest {}!'.format(repr(dest)))
 
         if fatal:
             proto = getattr(dest, 'proto', dest)
@@ -88,7 +90,7 @@ class DCPServer:
         else:
             # This will have to change later for sts and stuff.
             try:
-                yield from instance.unregistered(self, proto.user, line)
+                yield from instance.unregistered(self, proto, line)
             except CommandNotImplementedError:
                 self.error(proto, line.command, 'You are not signed on',
                            False)
@@ -162,7 +164,7 @@ class DCPServer:
             return False
 
         f = yield from self.user_store.get_user(name)
-        if f.result() is not None:
+        if f is not None:
             self.error(proto, line.command, 'Handle already registered', False,
                        {'handle' : [name]})
             return False
@@ -180,7 +182,7 @@ class DCPServer:
         password = crypt(password, mksalt())
 
         # Bang
-        self.user_store.create_user(name, password, gecos)
+        asyncio.Task(self.user_store.create_user(name, password, gecos))
 
         return True
 
