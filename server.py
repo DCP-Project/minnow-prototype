@@ -1,15 +1,14 @@
-
+# Copyright © 2014 
 import enum
 import time
 import asyncio
 import re
 import inspect
+import random
 from collections import deque
 from functools import partial
-from random import randint
 
-from crypt import crypt, mksalt
-from hmac import compare_digest
+import crypt
 import logging
 import traceback
 
@@ -51,7 +50,7 @@ class DCPServer:
     def motd_load(self):
         try:
             with open('motd.txt', 'r') as f:
-                self.motd = ''.join(f.readlines())
+                self.motd = f.read()
         except Exception as e:
             logger.exception('Could not read MOTD')
 
@@ -175,7 +174,7 @@ class DCPServer:
             self.error(proto, line.command, 'Bad password', False)
             return False
 
-        password = crypt(password, mksalt())
+        password = crypt.crypt(password, crypt.mksalt())
 
         # Bang
         asyncio.Task(self.user_store.create_user(name, password, gecos))
@@ -203,7 +202,7 @@ class DCPServer:
         user.timeout = True
 
         loop = asyncio.get_event_loop()
-        sched = randint(4500, 6000) / 100
+        sched = round(random.uniform(45, 60), 3)
         cb = loop.call_later(sched, self.ping_timeout, user)
         user.proto.callbacks['ping'] = cb
 

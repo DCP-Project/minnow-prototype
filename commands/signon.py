@@ -1,6 +1,9 @@
 from command import Command, register
 import parser
+
 import asyncio
+
+from hmac import digest
 
 class Signon(Command):
     @asyncio.coroutine
