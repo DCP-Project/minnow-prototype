@@ -1,4 +1,5 @@
 from command import Command, register
+from settings import *
 import asyncio
 
 class Register(Command):
