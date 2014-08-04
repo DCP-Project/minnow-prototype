@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import asyncio, socket
+import random
 
 import logging
 import traceback
@@ -94,8 +95,8 @@ class DCPBaseProto(asyncio.Protocol):
 
         self.server.user_exit(self.user)
 
-        for cb in self.callbacks.values():
-            cb.cancel()
+        for callback in self.callbacks.values():
+            callback.cancel()
 
         self.transport = None
 
@@ -228,15 +229,26 @@ class DCPBaseProto(asyncio.Protocol):
         if fatal:
             self.transport.close()
 
+    def call_cancel(self, name):
+        callback = self.callback.pop(name, None)
+        if callback is None:
+            return
+
+        callback.cancel()
+
     def call_later(self, name, delay, callback, *args):
         loop = asyncio.get_event_loop()
-        self.proto.callback[name] = loop.call_later(delay, callback, *args)
-        return self.proto.callback[name]
+        self.callback[name] = loop.call_later(delay, callback, *args)
+        return self.callback[name]
 
     def call_at(self, name, when, callback, *args):
         loop = asyncio.get_event_loop()
-        self.proto.callback[name] = loop.call_at(when, callback, *args)
-        return self.proto.callback[name]
+        self.callback[name] = loop.call_at(when, callback, *args)
+        return self.callback[name]
+
+    def call_ish(self, name, when1, when2, callback, *args):
+        delay = round(random.uniform(when1, when2), 3)
+        return self.call_later(name, delay, callback, *args)
 
 
 class DCPProto(DCPBaseProto):

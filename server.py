@@ -5,8 +5,6 @@ import asyncio
 import re
 import inspect
 import random
-from collections import deque
-from functools import partial
 
 import crypt
 import logging
@@ -20,8 +18,6 @@ from errors import *
 
 import command
 import parser
-import acl
-import config
 
 logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
@@ -54,7 +50,7 @@ class DCPServer:
         except Exception as e:
             logger.exception('Could not read MOTD')
 
-    def error(self, dest, command, reason, fatal=True, extargs=None,
+    def error(self, dest, command_, reason, fatal=True, extargs=None,
               source=None):
         if hasattr(dest, 'proto'):
             proto = dest.proto
@@ -66,9 +62,9 @@ class DCPServer:
         if fatal:
             proto = getattr(dest, 'proto', dest)
             logger.debug('Fatal error encountered for client %r (%s: %s [%r])',
-                         proto.peername, command, reason, extargs)
+                         proto.peername, command_, reason, extargs)
 
-        proto.error(command, reason, fatal, extargs, source)
+        proto.error(command_, reason, fatal, extargs, source)
 
     def _call_func(self, proto, line):
         instance = command.register.get(line.command.lower(), None)
@@ -105,13 +101,12 @@ class DCPServer:
                 self.error(proto, line.command, 'Internal server error (this ' \
                         'isn\'t your fault)')
 
-    def user_enter(self, proto, name, gecos, acl, config, options):
-        user = User(proto, name, gecos, acl, config, None, options)
+    def user_enter(self, proto, name, gecos, acl, uconfig, options):
+        user = User(proto, name, gecos, acl, uconfig, None, options)
         proto.user = self.users[name] = user
 
         # Cancel the timeout
-        proto.callbacks['signon'].cancel()
-        del proto.callbacks['signon']
+        proto.call_cancel('signon')
 
         kval = {
             'name' : [self.name],
@@ -201,15 +196,12 @@ class DCPServer:
 
         user.timeout = True
 
-        loop = asyncio.get_event_loop()
-        sched = round(random.uniform(45, 60), 3)
-        cb = loop.call_later(sched, self.ping_timeout, user)
-        user.proto.callbacks['ping'] = cb
+        user.call_ish('ping', 45, 60, self.ping_timeout, user)
 
     def conn_timeout(self, proto):
         if proto.user:
-            # They've signed on
-            proto.callbacks.pop('signon', None)
+            # They've signed on, no need
+            user.call_cancel('signon')
             return
 
         self.error(proto, '*', 'Connection timed out')
