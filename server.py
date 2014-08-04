@@ -1,3 +1,4 @@
+
 import enum
 import time
 import asyncio
@@ -5,7 +6,6 @@ import re
 import inspect
 from collections import deque
 from functools import partial
-
 from random import randint
 
 from crypt import crypt, mksalt
@@ -29,10 +29,6 @@ logger = logging.getLogger(__name__)
 
 # This is subject to change
 valid_handle = re.compile(r'^[^#!=&$,\?\*\[\]][^=$,\?\*\[\]]+$')
-
-# Flags for the annotations
-UNREG = 1
-SIGNON = 2
 
 class DCPServer:
     def __init__(self, name, servpass=servpass):
