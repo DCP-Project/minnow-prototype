@@ -38,9 +38,9 @@ class DatabaseLocks:
     __slots__ = ['waiting', 'accessing', 'nreaders']
 
     def __init__(self):
-        self.locks.waiting = Lock()
-        self.locks.accessing = Lock()
-        self.locks.nreaders = Counter()
+        self.waiting = Lock()
+        self.accessing = Lock()
+        self.nreaders = Counter()
 
 _db_locks = defaultdict(DatabaseLocks)
 
