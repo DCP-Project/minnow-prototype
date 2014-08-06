@@ -33,7 +33,7 @@ class DCPServer:
         self.users = dict()
         self.groups = dict()
 
-        self.user_store = AsyncStorage(ProtocolStorage, 'store.db')
+        self.proto_store = AsyncStorage(ProtocolStorage, 'store.db')
 
         self.line_queue = asyncio.Queue()
 
@@ -153,7 +153,7 @@ class DCPServer:
                        {'handle' : [name]})
             return False
 
-        f = yield from self.user_store.get_user(name)
+        f = yield from self.proto_store.get_user(name)
         if f is not None:
             self.error(proto, line.command, 'Handle already registered', False,
                        {'handle' : [name]})
@@ -172,7 +172,7 @@ class DCPServer:
         password = crypt.crypt(password, crypt.mksalt())
 
         # Bang
-        asyncio.Task(self.user_store.create_user(name, password, gecos))
+        asyncio.Task(self.proto_store.create_user(name, password, gecos))
 
         return True
 
