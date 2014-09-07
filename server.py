@@ -206,3 +206,11 @@ class DCPServer:
 
         self.error(proto, '*', 'Connection timed out')
 
+    def get_online_target(self, target):
+        if target == '*':
+            return
+
+        if target.startswith('#') and target in self.groups:
+            return self.groups[target]
+        elif target in self.users:
+            return self.users[target]
