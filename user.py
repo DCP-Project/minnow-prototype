@@ -1,7 +1,7 @@
 from math import ceil
 from random import uniform
 from config import UserConfig
-from acl import UserACL
+from acl import UserACLSet
 
 class User:
     def __init__(self, proto, name, gecos, acl=None, config=None, roster=None,
@@ -18,7 +18,7 @@ class User:
         self.groups = set()
 
         if self.acl is None:
-            self.acl = UserACL()
+            self.acl = UserACLSet()
 
         if self.config is None:
             self.config = UserConfig()

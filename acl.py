@@ -12,6 +12,20 @@ class ACL:
         self.reason = reason
 
 
+class UserACL(ACL):
+    __slots__ = ACL.__slots__
+    pass
+
+
+class GroupACL(ACL):
+    __slots__ = ['time', 'user', 'reason']
+
+    def __init__(self, user, time=0, reason=None):
+        self.user = user
+        self.time = time
+        self.reason = reason
+
+
 class UserACLValues(enum.Enum):
     user_auspex     = 'user:auspex'
     user_register   = 'user:register'
@@ -53,8 +67,9 @@ class GroupACLValues(enum.Enum):
 class BaseACL:
     __slots__ = ['acls', 'acl_map']
 
-    def __init__(self, acls):
+    def __init__(self, acls, acltype):
         self.acls = acls
+        self.acltype = acltype
 
         self.acl_map = dict()
 
@@ -65,7 +80,7 @@ class BaseACL:
         if acl in self.acl_map:
             self.acl_map[acl.value].modify(*item)
         else:
-            self.acl_map[acl.value] = ACL(*item)
+            self.acl_map[acl.value] = self.acltype(*item)
 
     def __getitem__(self, acl):
         if not hasattr(acl, 'value'):
@@ -94,14 +109,14 @@ class BaseACL:
                     self.acl_map.items())
 
 
-class UserACL(BaseACL):
+class UserACLSet(BaseACL):
     __slots__ = BaseACL.__slots__
 
     def __init__(self):
         super().__init__(UserACLValues)
 
 
-class GroupACL(BaseACL):
+class GroupACLSet(BaseACL):
     __slots__ = BaseACL.__slots__
 
     def __init__(self):

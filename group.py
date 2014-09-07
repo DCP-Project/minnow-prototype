@@ -4,7 +4,7 @@ from collections import defaultdict
 from errors import *
 from user import User
 from parser import MAXFRAME
-from acl import GroupACL
+from acl import GroupACLSet
 from config import GroupConfig
 
 class Group:
@@ -20,7 +20,7 @@ class Group:
         self.callbacks = dict()
 
         if self.acl is None:
-            self.acl = defaultdict(GroupACL)
+            self.acl = defaultdict(GroupACLSet)
 
         if self.config is None:
             self.config = GroupConfig()
