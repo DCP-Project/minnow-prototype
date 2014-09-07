@@ -59,7 +59,7 @@ class Database:
         # check_same_thread is acceptable because this limitation has not
         # existed since time immemorial.
         self.conn = sqlite3.connect(dbname, check_same_thread=False)
-        self.conn.row_factory = AsyncSafeRow
+        self.conn.row_factory = sqlite3.Row
 
         self.locks = _db_locks[dbname]
 
@@ -110,27 +110,6 @@ class Database:
             val = self.locks.nreaders.dec()
             if val == 0:
                 self.locks.accessing.release()
-
-
-class AsyncSafeRow:
-    """ An async-safe row (duh) designed to partially mimic the sqlite3 row
-    class.
-
-    This can probably go away soon since we are not bound by the limitations
-    of pickle for a while now (this went away during one of the redesigns of
-    this module)
-    """
-
-    def __init__(self, cursor, row):
-        self.contents = OrderedDict()
-        for index, colname in enumerate(cursor.description):
-            self.contents[colname[0]] = row[index]
-
-    def __getitem__(self, item):
-        if isinstance(item, int):
-            return self.contents[self.contents.keys[item]]
-        else:
-            return self.contents[item]
 
 
 # Statements
