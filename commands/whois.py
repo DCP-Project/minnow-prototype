@@ -41,7 +41,7 @@ class Whois(Command):
 
         # FIXME - if WHOIS info is too big, split it up
 
-        user.send(self, user, 'whois', kval)
+        user.send(server, user, 'whois', kval)
 
 
 register['whois'] = Whois()
