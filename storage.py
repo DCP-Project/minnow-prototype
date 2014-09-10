@@ -123,21 +123,20 @@ s_get_user_config = 'SELECT "config_user".* FROM "config_user","user" WHERE ' \
 
 s_get_group = 'SELECT "group".* FROM "group" WHERE "name"=?'
 
-s_get_group_acl = 'SELECT "acl_group".*,"user".name AS username FROM ' \
-    '"acl_group","user","group" WHERE "group".name=? AND "group".id=' \
-    '"acl_group".group_id AND "user".id="acl_group".user_id'
+s_get_group_acl = 'SELECT "acl_group".* FROM "acl_group","group" WHERE ' \
+    '"group".name=? LEFT OUTER JOIN "user" ON "acl_group".user_id="user".id'
 
 s_get_group_acl_user = 'SELECT "acl_group".* FROM "acl_group","user" WHERE ' \
     '"group".name=? AND "user".name=? AND "group".id="acl_group".group_id ' \
     'AND "user".id="acl_user".user_id'
 
-s_get_group_config = '*SELECT "config_group".*,"user".name AS username FROM ' \
+s_get_group_config = 'SELECT "config_group".*,"user".name AS username FROM ' \
     '"config_group","user","group" WHERE "group".name=? AND ' \
     '"group".id="config_group".group_id AND "user".id="config_group".user_id'
 
 s_create_user = 'INSERT INTO "user" (name,gecos,password) VALUES (?,?,?)'
 
-s_create_group = 'INSERT INTO "group" (name) VALUES(?)'
+s_create_group = 'INSERT INTO "group" (name,topic) VALUES(?,?)'
 
 s_create_user_acl = 'INSERT INTO "acl_user" (acl,user_id) SELECT ?,"user".id ' \
     'FROM "user" WHERE "user".name=?'
@@ -225,8 +224,8 @@ class ProtocolStorage:
         self.log.critical('executed with', name, gecos, password)
         return c
 
-    def create_group(self, name):
-        return self.database.modify(s_create_group, (name,))
+    def create_group(self, name, topic):
+        return self.database.modify(s_create_group, (name, topic))
 
     def create_user_acl(self, name, acl, setter=None):
         return self.database.modify(s_create_user_acl, (acl,name))

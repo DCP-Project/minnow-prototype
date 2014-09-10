@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS 'config_user' (
 CREATE TABLE IF NOT EXISTS 'group' (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(48) UNIQUE NOT NULL,
+    topic TEXT,
     timestamp INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
 );
 
