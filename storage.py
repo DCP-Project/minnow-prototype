@@ -115,18 +115,19 @@ class Database:
 # Statements
 s_get_user = 'SELECT "user".* FROM "user" WHERE "name"=?'
 
-s_get_user_acl = 'SELECT "acl_user".*,"user2".name FROM "acl_user","user" ' \
-    'WHERE "user".name=? AND "acl_user".user_id="user".id LEFT OUTER JOIN ' \
-    'user AS user2 "acl_user".setter_id="user2".id'
+s_get_user_acl = 'SELECT "acl_user".acl,"acl_user".timestamp,"user2".name ' \
+    'FROM "acl_user","user" WHERE "user".name=? AND ' \
+    '"acl_user".user_id="user".id LEFT OUTER JOIN user AS user2 ' \
+    '"acl_user".setter_id="user2".id'
 
 s_get_user_config = 'SELECT "config_user".* FROM "config_user","user" WHERE ' \
     '"user".name=? AND "config_user".user_id="user".id'
 
 s_get_group = 'SELECT "group".* FROM "group" WHERE "name"=?'
 
-s_get_group_acl = 'SELECT "acl_group".*,"user".name FROM ' \
-    '"acl_group","group" WHERE "group".name=? LEFT OUTER JOIN "user" ON ' \
-    '"acl_group".user_id="user".id'
+s_get_group_acl = 'SELECT "acl_group".acl,"acl_group".timestamp,"user".name ' \
+    'FROM "acl_group","group" WHERE "group".name=? LEFT OUTER JOIN "user" ' \
+    'ON "acl_group".user_id="user".id'
 
 s_get_group_acl_user = 'SELECT "acl_group".*,"user2".name FROM ' \
     '"acl_group","user" WHERE "group".name=? AND "user".name=? ' \
