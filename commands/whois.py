@@ -11,11 +11,11 @@ class Whois(Command):
             server.error(user, line.command, 'No valid target', False)
             return
 
-        if target not in server.users:
+        if target not in server.online_users:
             server.error(user, line.command, 'No such user', False)
             return
 
-        user = server.users[target]
+        user = server.online_users[target]
 
         kval = {
             'handle' : [user.name],

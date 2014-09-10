@@ -23,12 +23,12 @@ class Message(Command):
 
             target = server.groups[target]
         else:
-            if target not in server.users:
+            if target not in server.online_users:
                 server.error(user, line.command, 'No such user', False,
                            {'target' : [target]})
                 return
 
-            target = server.users[target]
+            target = server.online_users[target]
 
         # Get our message
         message = line.kval.get('body', [''])

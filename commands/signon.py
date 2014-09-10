@@ -36,7 +36,7 @@ class Signon(Command):
             server.error(proto, line.command, 'Invalid password')
             return
 
-        if name in server.users:
+        if name in server.online_users:
             # TODO - burst all state to the user
             server.error(proto, line.command, 'No multiple users at the '\
                        'moment', True, {'handle' : [name]})

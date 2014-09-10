@@ -30,7 +30,7 @@ class DCPServer:
         self.name = name
         self.servpass = servpass
 
-        self.users = dict()
+        self.online_users = dict()
         self.groups = dict()
 
         self.proto_store = AsyncStorage(ProtocolStorage, 'store.db')
@@ -103,7 +103,7 @@ class DCPServer:
 
     def user_enter(self, proto, name, gecos, acl, uconfig, options):
         user = User(proto, name, gecos, acl, uconfig, None, options)
-        proto.user = self.users[name] = user
+        proto.user = self.online_users[name] = user
 
         # Cancel the timeout
         proto.call_cancel('signon')
@@ -132,7 +132,7 @@ class DCPServer:
         if user is None:
             return
 
-        del self.users[user.name]
+        del self.online_users[user.name]
 
         for group in list(user.groups):
             # Part them from all groups
@@ -212,5 +212,5 @@ class DCPServer:
 
         if target.startswith('#') and target in self.groups:
             return self.groups[target]
-        elif target in self.users:
-            return self.users[target]
+        elif target in self.online_users:
+            return self.online_users[target]
