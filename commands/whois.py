@@ -22,8 +22,7 @@ class Whois(Command):
             'gecos' : [user.gecos],
         }
 
-        print(user.acl)
-        if acl.UserACLValues.user_auspex in user.acl:
+        if user.acl.has_acl(acl.UserACLValues.user_auspex):
             ip = user.proto.peername[0]
 
             kval.update({
