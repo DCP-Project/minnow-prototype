@@ -3,6 +3,8 @@
 
 import logging
 
+### Server configuration
+
 # Server name
 servname = 'elizabethmyers.me.uk'
 
@@ -13,8 +15,16 @@ listen_json = ('0.0.0.0', 7267)
 # Server password
 servpass = None
 
+# Allow registrations
+allow_register = True
+
+### Debug options
+
 # Debug level (set to debug, please)
 log_level = logging.DEBUG
 
-# Allow registrations
-allow_register = True
+### Performance options
+
+# Maximum users to keep in the offline cache
+# (Set to None for an unlimited amount)
+max_cache = 1024

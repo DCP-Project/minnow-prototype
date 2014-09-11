@@ -5,11 +5,13 @@ import asyncio
 import re
 import inspect
 import random
+import functools
 
 import crypt
 import logging
 import traceback
 
+from acl import UserACLSet, GroupACLSet
 from user import User
 from group import Group
 from storage import AsyncStorage, ProtocolStorage
@@ -214,3 +216,28 @@ class DCPServer:
             return self.groups[target]
         elif target in self.online_users:
             return self.online_users[target]
+
+    @functools.lru_cache(maxsize=max_cache)
+    @asyncio.coroutine
+    def get_any_target(self, target):
+        """ Get a target in any state
+
+        Note the target is offline if proto is None
+        """
+
+        target = target.lower()
+
+        ret = self.get_online_target(target)
+        if ret is not None:
+            return ret
+
+        if target.startswith('#'):
+            g_data = (yield from self.proto_store.get_group(target))
+            acl = (yield from self.proto_store.get_group_acl(target))
+            return Group(target, g_data['topic'], GroupACLSet(acl), None,
+                         g_data['timestamp'])
+        else:
+            u_data = (yield from self.proto_store.get_user(target))
+            acl = (yield from self.proto_store.get_user_acl(target))
+            return User(None, target, u_data['gecos'], UserACLSet(acl))
+
