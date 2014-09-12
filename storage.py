@@ -153,6 +153,8 @@ s_create_group_acl = 'INSERT INTO "acl_group" (acl,group_id,user_id,' \
 s_set_user = 'UPDATE "user" SET gecos=IFNULL(?,gecos),password=' \
     'IFNULL(?,password) WHERE "user".name=?'
 
+s_set_group = 'UPDATE "group" SET topic=? WHERE "group".name=?'
+
 s_set_config_user = 'INSERT OR REPLACE INTO "config_user" (config,value,' \
     'user_id,setter_id) VALUES((SELECT ?),(SELECT ?),(SELECT "user".id FROM ' \
     '"user" WHERE "user".name=?))'
@@ -239,7 +241,10 @@ class ProtocolStorage:
                                 (acl, name, username, setter, reason))
 
     def set_user(self, name, *, gecos=None, password=None):
-        return self.database.modify(s_set_user, (gecos, password))
+        return self.database.modify(s_set_user, (gecos, password, name))
+
+    def set_group(self, name, *, topic=None):
+        return self.database.modify(s_set_group, (topic, name))
 
     def set_config_user(self, name, config, value=None, setter=None):
         return self.database.modify(s_set_config_user, (config, value, name))
