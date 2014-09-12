@@ -32,8 +32,14 @@ class Signon(Command):
                        'the server', False, {'handle' : [name]})
             return
 
-        password = crypt(line.kval.get('password', ['*'])[0], uinfo['password'])
-        if not compare_digest(password, uinfo['password']):
+        if 'password' not in line.kval:
+            server.error(proto, line.command, 'No password given')
+            return
+
+        password = line.kval.get('password')[0]
+        h = crypt(line.kval.get(password, uinfo['password'])
+        del password
+        if not compare_digest(h, uinfo['password']):
             server.error(proto, line.command, 'Invalid password')
             return
 
