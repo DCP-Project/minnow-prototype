@@ -31,7 +31,7 @@ class Register(Command):
             'gecos' : [gecos],
             'message' : ['Registration successful, beginning signon'],
         }
-        proto.send(self, None, line.command, kval)
+        proto.send(server, None, line.command, kval)
 
         options = line.kval.get('options', [])
 
@@ -57,7 +57,7 @@ class FRegister(Command):
             'gecos' : [gecos],
             'message' : ['Registration successful'],
         }
-        proto.send(self, None, line.command, kval)
+        proto.send(server, None, line.command, kval)
 
 
 register.update({
