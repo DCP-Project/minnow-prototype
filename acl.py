@@ -55,7 +55,10 @@ class GroupACLValues(enum.Enum):
 class UserACLSet:
     # TODO - move things like storage doodads and whatnot here.
 
-    def __init__(self, acl_data=None):
+    __slots__ = ['server', 'acl_map']
+
+    def __init__(self, server, acl_data=None):
+        self.server = server
         self.acl_map = dict()
 
         if not acl_data:
@@ -82,8 +85,13 @@ class UserACLSet:
 
 
 class GroupACLSet:
-    def __init__(self, acl_data=None):
-        # XXX this will change someday
+    __slots__ = ['server', 'acl_map']
+
+    def __init__(self, server, acl_data=None):
+        self.server = server
+
+        # XXX this is a hack and will change someday
+        # (dict of a dict is no way to live)
         self.acl_map = defaultdict(dict)
 
         if not acl_data:

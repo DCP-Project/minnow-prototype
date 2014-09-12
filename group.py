@@ -9,7 +9,9 @@ from config import GroupConfig
 
 class Group:
     """ Like an IRC channel """
-    def __init__(self, name, topic=None, acl=None, config=None, ts=None):
+    def __init__(self, server, name, topic=None, acl=None, config=None,
+                 ts=None):
+        self.server = server
         self.name = name
         self.topic = topic
         self.acl = acl
