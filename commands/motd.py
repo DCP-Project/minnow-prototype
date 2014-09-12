@@ -3,7 +3,7 @@ import asyncio
 
 class MOTD(Command):
     @asyncio.coroutine
-    def registered(self, server, user, line):
+    def registered(self, server, user, proto, line):
         server.user_MOTD(user)
 
 

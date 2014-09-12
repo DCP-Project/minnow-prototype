@@ -4,7 +4,7 @@ import asyncio
 
 class group_enter(Command):
     @asyncio.coroutine
-    def registered(self, server, user, line):
+    def registered(self, server, user, proto, line):
         target = line.target
         if target == '*':
             server.error(user, line.command, 'No valid target', False)
@@ -36,7 +36,7 @@ class group_enter(Command):
 
 class group_exit(Command):
     @asyncio.coroutine
-    def registered(self, server, user, line):
+    def registered(self, server, user, proto, line):
         target = line.target
         if target == '*':
             server.error(user, line.command, 'No valid target', False)

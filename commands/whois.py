@@ -5,7 +5,7 @@ import asyncio
 
 class Whois(Command):
     @asyncio.coroutine
-    def registered(self, server, user, line):
+    def registered(self, server, user, proto, line):
         target = line.target
         if target == '*' or target.startswith(('=', '#')):
             server.error(user, line.command, 'No valid target', False)
@@ -15,23 +15,27 @@ class Whois(Command):
             server.error(user, line.command, 'No such user', False)
             return
 
-        user = server.online_users[target]
+        t_user = server.get_any_target(target)
 
         kval = {
-            'handle' : [user.name],
-            'gecos' : [user.gecos],
+            'handle' : [t_user.name],
+            'gecos' : [t_user.gecos],
         }
 
         if user.acl.has_acl(acl.UserACLValues.user_auspex):
-            ip = user.proto.peername[0]
+            ip = []
+            host = []
+            for p in user.sessions:
+                ip.append(p.peername[0])
+                host.append(p.host)
 
             kval.update({
                 'acl' : sorted(user.acl),
-                'ip' : [ip],
-                'host' : [user.proto.host],
+                'ip' : ip,
+                'host' : host,
             })
 
-        if user.groups:
+        if t_user.groups:
             group_prop = config.GroupConfigValues.private
             user_acl = config.UserConfigValues.user_auspex
             kval['groups'] = [group for group in user.groups if not
@@ -40,7 +44,7 @@ class Whois(Command):
 
         # FIXME - if WHOIS info is too big, split it up
 
-        user.send(server, user, 'whois', kval)
+        proto.send(server, user, 'whois', kval)
 
 
 register['whois'] = Whois()

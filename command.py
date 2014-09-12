@@ -13,7 +13,7 @@ class Command:
         "Execute this action for unregistered users"
         raise CommandNotImplementedError
 
-    def registered(self, server, user, line):
+    def registered(self, server, user, proto, line):
         "Execute this action for registered users"
         raise CommandNotImplementedError
 

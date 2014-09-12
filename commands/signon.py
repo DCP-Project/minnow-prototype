@@ -44,8 +44,7 @@ class Signon(Command):
 
         options = line.kval.get('options', [])
 
-        yield from server.user_enter(proto, name, uinfo.gecos, uinfo.acl,
-                                   uinfo.config, options)
+        yield from server.user_enter(proto, name, options)
 
 
 register['signon'] = Signon()

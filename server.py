@@ -103,9 +103,11 @@ class DCPServer:
                 self.error(proto, line.command, 'Internal server error (this ' \
                         'isn\'t your fault)')
 
-    def user_enter(self, proto, name, gecos, acl, uconfig, options):
-        user = User(proto, name, gecos, acl, uconfig, None, options)
+    def user_enter(self, proto, name, options):
+        user = self.get_any_target(name)
         proto.user = self.online_users[name] = user
+
+        user.options = options
 
         # Cancel the timeout
         proto.call_cancel('signon')
@@ -128,7 +130,7 @@ class DCPServer:
 
         # Ping timeout stuff
         user.timeout = False
-        self.ping_timeout(user)
+        self.ping_timeout(proto)
 
     def user_exit(self, user):
         if user is None:
@@ -188,17 +190,17 @@ class DCPServer:
         }
         user.send_multipart(self, user, 'motd', ['text'], kval)
 
-    def ping_timeout(self, user):
-        if user.timeout:
-            logger.debug('User %r timed out', user.proto.peername)
-            self.error(user, 'ping', 'Ping timeout')
+    def ping_timeout(self, proto):
+        if proto.timeout:
+            logger.debug('Connection %r timed out', proto.peername)
+            self.error(proto, 'ping', 'Ping timeout')
             return
 
-        user.send(self, user, 'ping', {'time' : [str(round(time.time()))]})
+        proto.send(self, proto, 'ping', {'time' : [str(round(time.time()))]})
 
         user.timeout = True
 
-        user.call_ish('ping', 45, 60, self.ping_timeout, user)
+        proto.call_ish('ping', 45, 60, self.ping_timeout, proto)
 
     def conn_timeout(self, proto):
         if proto.user:

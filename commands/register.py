@@ -35,12 +35,12 @@ class Register(Command):
 
         options = line.kval.get('options', [])
 
-        yield from server.user_enter(proto, name, gecos, None, None, options)
+        yield from server.user_enter(proto, name, options)
 
 
 class FRegister(Command):
     @asyncio.coroutine
-    def registered(self, server, user, line):
+    def registered(self, server, user, proto, line):
         if acl.UserACLValues.user_register not in user.acl:
             server.error(user, line.command, 'No permission', False)
             return

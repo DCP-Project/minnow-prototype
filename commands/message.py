@@ -3,8 +3,7 @@ import asyncio
 
 class Message(Command):
     @asyncio.coroutine
-    def registered(self, server, user, line):
-        proto = user.proto
+    def registered(self, server, user, proto, line):
         target = line.target
         if target == '*':
             server.error(user, line.command, 'No valid target', False)
