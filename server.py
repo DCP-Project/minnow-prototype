@@ -235,15 +235,15 @@ class DCPServer:
 
         if target.startswith('#'):
             g_data = (yield from self.proto_store.get_group(target))
-            acl = (yield from self.proto_store.get_group_acl(target))
-            acl_set = GroupACLSet(server, acl)
+            acl_data = (yield from self.proto_store.get_group_acl(target))
+            acl_set = GroupACLSet(server, target, acl_data)
 
             return Group(self, target, g_data['topic'], acl_set,
                          None, g_data['timestamp'])
         else:
             u_data = (yield from self.proto_store.get_user(target))
-            acl = (yield from self.proto_store.get_user_acl(target))
-            acl_set = UserACLSet(server, acl)
+            acl_data = (yield from self.proto_store.get_user_acl(target))
+            acl_set = UserACLSet(server, target, acl_data)
 
             return User(self, target, u_data['gecos'], acl_set)
 

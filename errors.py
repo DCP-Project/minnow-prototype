@@ -59,3 +59,14 @@ class CommandACLError(CommandError):
 class CommandNotImplementedError(CommandError, NotImplementedError):
     pass
 
+
+class ACLError(DCPError):
+    pass
+
+
+class ACLExistsError(ACLError):
+    pass
+
+
+class ACLDoesNotExistError(ACLError):
+    pass

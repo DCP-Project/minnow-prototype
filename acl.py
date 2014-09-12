@@ -1,3 +1,4 @@
+import asyncio
 import enum
 from time import time
 from collections import defaultdict
@@ -55,18 +56,21 @@ class GroupACLValues(enum.Enum):
 class UserACLSet:
     # TODO - move things like storage doodads and whatnot here.
 
-    __slots__ = ['server', 'acl_map']
+    __slots__ = ['server', 'user', 'acl_map']
 
-    def __init__(self, server, acl_data=None):
+    def __init__(self, server, user, acl_data=None):
+        # NOTE - we use acl_data here separate instead of getting it ourselves
+        # because __init__ being a coroutine is probably dodgy.
         self.server = server
+        self.user = user
         self.acl_map = dict()
 
         if not acl_data:
             return
 
         for acl in acl_data:
-            self.add(acl['acl'], acl['setter'], acl['reason'],
-                     acl['timestamp'])
+            self._add_nocommit(acl['acl'], acl['setter'], acl['reason'],
+                               acl['timestamp'])
 
     def __iter__(self):
         return iter(self.acl_map)
@@ -77,18 +81,32 @@ class UserACLSet:
     def get(self, acl):
         return self.acl_map.get(acl)
 
-    def add(self, acl, setter=None, reason=None, time_=None):
+    def _add_nocommit(self, acl, setter=None, reason=None, time_=None):
+        if acl in self.acl_map:
+            raise ACLExistsError(acl)
+
         self.acl_map[acl] = ACL(setter, reason, time_)
 
-    def delete(self, acl):
-        self.acl_map.pop(acl, None)
+    def add(self, acl, setter=None, reason=None):
+        self._add_nocommit(acl, setter, reason)
 
+        asyncio.Task(self.server.proto_store.create_user_acl, self.user,
+                     acl, reason)
+
+    def delete(self, acl):
+        if acl not in self.acl_map:
+            raise ACLDoesNotExistError('ACL does not exist')
+
+        del self.acl_map[acl]
+
+        asyncio.Task(self.server.proto_store.del_user_acl, acl, self.user)
 
 class GroupACLSet:
-    __slots__ = ['server', 'acl_map']
+    __slots__ = ['server', 'group', 'acl_map']
 
-    def __init__(self, server, acl_data=None):
+    def __init__(self, server, group, acl_data=None):
         self.server = server
+        self.group = group
 
         # XXX this is a hack and will change someday
         # (dict of a dict is no way to live)
@@ -98,8 +116,8 @@ class GroupACLSet:
             return
 
         for acl in acl_data:
-            self.add(acl['user'], acl['acl'], acl['setter'], acl['reason'],
-                     acl['timestamp'])
+            self._add_nocommit(acl['user'], acl['acl'], acl['setter'],
+                               acl['reason'], acl['timestamp'])
 
     def __iter__(self):
         for user, acl_ in self.acl_map.items():
@@ -114,12 +132,28 @@ class GroupACLSet:
         user = getattr(user, 'name', user)
         return self.acl_map.get(user)
 
-    def add(self, user, acl, setter=None, reason=None, time_=None):
-        user = getattr(user, 'name', user)
+    def _add_nocommit(self, user, acl, setter=None, reason=None, time_=None):
+        if acl in self.acl_map[user]:
+            raise ACLExistsError(acl)
+
         self.acl_map[user][acl] = ACL(setter, reason, time_)
 
+    def add(self, user, acl, setter=None, reason=None):
+        user = getattr(user, 'name', user)
+        self._add_nocommit(user, acl, setter, reason)
+
+        asyncio.Task(self.server.proto_store.create_group_acl, self.group,
+                     user, acl, setter, reason)
+
     def delete(self, user, acl):
-        self.acl_map[user].pop(acl, None)
+        user = getattr(user, 'name', user)
+        if acl not in self.acl_map[user]:
+            raise ACLDoesNotExistError('ACL does not exist')
+
+        del self.acl_map[user][acl]
+
+        asyncio.Task(self.server.proto_store.del_group_acl, self.group, user,
+                     acl)
 
     def delete_all(self, user):
         self.acl_map.pop(user, None)
