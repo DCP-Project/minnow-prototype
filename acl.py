@@ -140,17 +140,17 @@ class GroupACLSet:
         user = getattr(user, 'name', user)
         return acl in self.acl_map[user]
 
-    def has_any(self, acl):
+    def has_any(self, user, acl):
         if isinstance(acl, str):
-            return self.has_acl(acl)
+            return self.has_acl(user, acl)
 
-        return any(self.has_acl(a) for a in acl)
+        return any(self.has_acl(user, a) for a in acl)
 
-    def has_all(self, acl):
+    def has_all(self, user, acl):
         if isinstance(acl, str):
-            return self.has_acl(acl)
+            return self.has_acl(user, acl)
 
-        return all(self.has_acl(a) for a in acl)
+        return all(self.has_acl(user, a) for a in acl)
 
     def get(self, user, acl):
         user = getattr(user, 'name', user)
