@@ -105,6 +105,7 @@ class DCPServer:
 
     def user_enter(self, proto, name, options):
         user = (yield from self.get_any_target(name))
+        assert user is not None
         proto.user = self.online_users[name] = user
         user.sessions.add(proto)
 
@@ -158,7 +159,7 @@ class DCPServer:
                        {'handle' : [name]})
             return False
 
-        f = yield from self.proto_store.get_user(name)
+        f = yield from self.proto_store.get_user(name.lower())
         if f is not None:
             self.error(proto, command, 'Handle already registered', False,
                        {'handle' : [name]})
@@ -177,10 +178,10 @@ class DCPServer:
         password = crypt.crypt(password, crypt.mksalt())
 
         # Bang
-        yield from self.proto_store.create_user(name, gecos, password)
+        yield from self.proto_store.create_user(name.lower(), gecos, password)
 
         # Clear the user cache
-        self.get_any_target.clear()
+        self.get_any_target.cache_clear()
 
         return True
 
@@ -223,9 +224,9 @@ class DCPServer:
         elif target in self.online_users:
             return self.online_users[target]
 
-    @functools.lru_cache(maxsize=max_cache)
     @asyncio.coroutine
-    def get_any_target(self, target, *data):
+    @functools.lru_cache(maxsize=max_cache)
+    def get_any_target(self, target):
         """ Get a target in any state
 
         Note the target is offline if proto is None
@@ -250,6 +251,7 @@ class DCPServer:
         else:
             u_data = (yield from self.proto_store.get_user(target))
             if u_data is None:
+                print("User not found", target)
                 return None
 
             acl_data = (yield from self.proto_store.get_user_acl(target))
