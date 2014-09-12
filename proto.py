@@ -231,7 +231,7 @@ class DCPBaseProto(asyncio.Protocol):
             self.transport.close()
 
     def call_cancel(self, name):
-        callback = self.callback.pop(name, None)
+        callback = self.callbacks.pop(name, None)
         if callback is None:
             return
 
@@ -239,13 +239,13 @@ class DCPBaseProto(asyncio.Protocol):
 
     def call_later(self, name, delay, callback, *args):
         loop = asyncio.get_event_loop()
-        self.callback[name] = loop.call_later(delay, callback, *args)
-        return self.callback[name]
+        self.callbacks[name] = loop.call_later(delay, callback, *args)
+        return self.callbacks[name]
 
     def call_at(self, name, when, callback, *args):
         loop = asyncio.get_event_loop()
-        self.callback[name] = loop.call_at(when, callback, *args)
-        return self.callback[name]
+        self.callbacks[name] = loop.call_at(when, callback, *args)
+        return self.callbacks[name]
 
     def call_ish(self, name, when1, when2, callback, *args):
         delay = round(random.uniform(when1, when2), 3)
