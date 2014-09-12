@@ -6,12 +6,13 @@ import random
 import logging
 import traceback
 
-from server import DCPServer
-from user import User
-from group import Group
+import server.parser
+
+from server.server import DCPServer
+from server.user import User
+from server.group import Group
+from server.errors import *
 from settings import *
-from errors import *
-import parser
 
 logger = logging.getLogger(__name__)
 

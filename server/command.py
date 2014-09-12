@@ -3,7 +3,7 @@
 import logging
 from importlib import import_module
 
-from errors import *
+from server.errors import *
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +30,9 @@ register = dict()
 command_mod = list()
 
 # Late import to allow this module to initalise
-import commands
+from server import commands
 for mod in commands.__all__:
-    command_mod.append(import_module("commands." + mod))
+    command_mod.append(import_module("server.commands." + mod))
 
 logger.info("%d commands loaded", len(register))
 

@@ -1,11 +1,11 @@
 import time
 from collections import defaultdict
 
-from errors import *
-from user import User
-from parser import MAXFRAME
-from acl import GroupACLSet
-from config import GroupConfig
+from server.user import User
+from server.parser import MAXFRAME
+from server.acl import GroupACLSet
+from server.config import GroupConfig
+from server.errors import *
 
 class Group:
     """ Like an IRC channel """

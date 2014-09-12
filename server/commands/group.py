@@ -1,4 +1,5 @@
-from command import Command, register
+from server.command import Command, register
+
 import parser
 import asyncio
 

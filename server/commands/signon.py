@@ -1,9 +1,10 @@
 import asyncio
-from crypt import crypt
-from hmac import compare_digest
+import crypt
+import hmac
 
 import parser
-from command import Command, register
+
+from server.command import Command, register
 
 
 class Signon(Command):
@@ -37,8 +38,8 @@ class Signon(Command):
             return
 
         password = line.kval.get('password')[0]
-        h = crypt(line.kval.get(password, uinfo['password']))
-        if not compare_digest(h, uinfo['password']):
+        h = crypt.crypt(line.kval.get(password, uinfo['password']))
+        if not hmac.compare_digest(h, uinfo['password']):
             server.error(proto, line.command, 'Invalid password')
             return
 

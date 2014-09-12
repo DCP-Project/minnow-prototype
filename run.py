@@ -5,8 +5,8 @@ import logging
 
 from functools import partial
 
-from server import DCPServer
-from proto import DCPProto, DCPJSONProto
+from server.server import DCPServer
+from server.proto import DCPProto, DCPJSONProto
 from settings import *
 
 logging.basicConfig(level=log_level)

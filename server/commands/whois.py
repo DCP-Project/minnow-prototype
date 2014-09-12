@@ -1,7 +1,8 @@
-from command import Command, register
-import acl
-import config
 import asyncio
+
+from server.command import Command, register
+import server.acl
+import server.config
 
 class Whois(Command):
     @asyncio.coroutine

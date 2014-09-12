@@ -1,7 +1,7 @@
-from command import Command, register
-from acl import UserACLValues, GroupACLValues
-
 import asyncio
+
+from server.command import Command, register
+from server.acl import UserACLValues, GroupACLValues
 
 class ACLBase:
     @asyncio.coroutine

@@ -1,8 +1,8 @@
 import asyncio
 
-import acl
+import server.acl
 
-from command import Command, register
+from server.command import Command, register
 from settings import *
 
 class Register(Command):

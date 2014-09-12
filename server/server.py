@@ -6,20 +6,19 @@ import re
 import inspect
 import random
 import functools
-
 import crypt
 import logging
 import traceback
 
-from acl import UserACLSet, GroupACLSet
-from user import User
-from group import Group
-from storage import AsyncStorage, ProtocolStorage
-from settings import *
-from errors import *
+import server.command
+import server.parser
 
-import command
-import parser
+from server.acl import UserACLSet, GroupACLSet
+from server.user import User
+from server.group import Group
+from server.storage import AsyncStorage, ProtocolStorage
+from server.errors import *
+from settings import *
 
 logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)

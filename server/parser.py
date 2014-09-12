@@ -5,7 +5,7 @@ from itertools import islice, takewhile
 from functools import reduce
 from operator import concat
 
-from errors import *
+from server.errors import *
 
 MAXFRAME = 1400
 MAXTARGET = 48

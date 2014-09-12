@@ -1,8 +1,8 @@
 import asyncio
 import crypt
 
-from config import UserConfig
-from acl import UserACLSet
+from server.config import UserConfig
+from server.acl import UserACLSet
 
 class User:
     def __init__(self, server, name, gecos, acl=None, config=None,

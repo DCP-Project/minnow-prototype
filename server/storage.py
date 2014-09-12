@@ -1,6 +1,7 @@
 import asyncio
 import sqlite3
 import queue
+
 from collections import OrderedDict, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
@@ -55,7 +56,7 @@ class Database:
     solution #3. Note that we use locks, NOT semaphores.
     """
 
-    def __init__(self, dbname='store.db'):
+    def __init__(self, dbname='data/store.db'):
         # check_same_thread is acceptable because this limitation has not
         # existed since time immemorial.
         self.conn = sqlite3.connect(dbname, check_same_thread=False)
@@ -189,7 +190,7 @@ class ProtocolStorage:
     (soon) roster data. This class is so big because DCP's storage is all
     inter-dependent. """
 
-    def __init__(self, dbname, schema='schema.sql'):
+    def __init__(self, dbname, schema='data/schema.sql'):
         self.database = Database(dbname)
         self.log = getLogger(__name__ + '.ProtocolStorage')
 

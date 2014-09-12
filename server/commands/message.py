@@ -1,5 +1,6 @@
-from command import Command, register
 import asyncio
+
+from server.command import Command, register
 
 class Message(Command):
     @asyncio.coroutine
