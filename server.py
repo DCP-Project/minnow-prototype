@@ -179,6 +179,9 @@ class DCPServer:
         # Bang
         yield from self.proto_store.create_user(name, password, gecos)
 
+        # Clear the user cache
+        self.get_any_target.clear()
+
         return True
 
     def user_motd(self, user, proto):
@@ -220,8 +223,8 @@ class DCPServer:
         elif target in self.online_users:
             return self.online_users[target]
 
-    @asyncio.coroutine
     @functools.lru_cache(maxsize=max_cache)
+    @asyncio.coroutine
     def get_any_target(self, target, *data):
         """ Get a target in any state
 
