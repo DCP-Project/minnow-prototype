@@ -77,7 +77,19 @@ class UserACLSet:
 
     def has_acl(self, acl):
         return acl in self.acl_map
-    
+
+    def has_any(self, acl):
+        if isinstance(acl, str):
+            return self.has_acl(acl)
+
+        return any(self.has_acl(a) for a in acl)
+
+    def has_all(self, acl):
+        if isinstance(acl, str):
+            return self.has_acl(acl)
+
+        return all(self.has_acl(a) for a in acl)
+
     def get(self, acl):
         return self.acl_map.get(acl)
 
@@ -127,6 +139,18 @@ class GroupACLSet:
     def has_acl(self, user, acl):
         user = getattr(user, 'name', user)
         return acl in self.acl_map[user]
+
+    def has_any(self, acl):
+        if isinstance(acl, str):
+            return self.has_acl(acl)
+
+        return any(self.has_acl(a) for a in acl)
+
+    def has_all(self, acl):
+        if isinstance(acl, str):
+            return self.has_acl(acl)
+
+        return all(self.has_acl(a) for a in acl)
 
     def get(self, user, acl):
         user = getattr(user, 'name', user)
