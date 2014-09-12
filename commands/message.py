@@ -14,20 +14,8 @@ class Message(Command):
             server.error(user, line.command, 'Cannot message servers yet, sorry',
                        False, {'target' : [target]})
             return
-        elif target.startswith('#'):
-            if target not in server.groups:
-                server.error(user, line.command, 'No such group', False,
-                           {'target' : [target]})
-                return
 
-            target = server.groups[target]
-        else:
-            if target not in server.online_users:
-                server.error(user, line.command, 'No such user', False,
-                           {'target' : [target]})
-                return
-
-            target = server.online_users[target]
+        target = server.get_online_target(target)
 
         # Get our message
         message = line.kval.get('body', [''])

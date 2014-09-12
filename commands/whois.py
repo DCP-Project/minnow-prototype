@@ -11,16 +11,15 @@ class Whois(Command):
             server.error(user, line.command, 'No valid target', False)
             return
 
-        if target not in server.online_users:
-            server.error(user, line.command, 'No such user', False)
-            return
-
         t_user = server.get_any_target(target)
 
         kval = {
             'handle' : [t_user.name],
             'gecos' : [t_user.gecos],
         }
+
+        if len(t_user.sessions):
+            kval['online'] = ['*']
 
         if user.acl.has_acl(acl.UserACLValues.user_auspex):
             ip = []

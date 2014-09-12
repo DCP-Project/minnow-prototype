@@ -38,12 +38,11 @@ class Signon(Command):
 
         password = line.kval.get('password')[0]
         h = crypt(line.kval.get(password, uinfo['password']))
-        del password
         if not compare_digest(h, uinfo['password']):
             server.error(proto, line.command, 'Invalid password')
             return
 
-        if name in server.online_users:
+        if name.lower() in server.online_users:
             # TODO - burst all state to the user
             server.error(proto, line.command, 'No multiple users at the '\
                        'moment', True, {'handle' : [name]})

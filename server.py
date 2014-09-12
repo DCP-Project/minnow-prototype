@@ -137,7 +137,7 @@ class DCPServer:
     def user_exit(self, user, proto):
         user.sessions.discard(proto)
         if not user.sessions:
-            del self.online_users[user.name]
+            del self.online_users[user.name.lower()]
 
         for group in list(user.groups):
             # Part them from all groups
@@ -219,6 +219,7 @@ class DCPServer:
         if target == '*':
             return
 
+        target = target.lower()
         if target.startswith('#') and target in self.groups:
             return self.groups[target]
         elif target in self.online_users:
