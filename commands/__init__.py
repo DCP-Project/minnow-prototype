@@ -1,3 +1,3 @@
-__all__ = ['acl', 'fregister', 'group', 'message', 'motd', 'pong', 'register',
+__all__ = ['fregister', 'group', 'message', 'motd', 'pong', 'register',
     'signon', 'whois']
 
