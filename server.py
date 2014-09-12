@@ -127,7 +127,7 @@ class DCPServer:
         user.send(self, user, 'signon', kval)
 
         # Send the MOTD
-        self.user_motd(user)
+        self.user_motd(user, proto)
 
         # Ping timeout stuff
         user.timeout = False
@@ -180,15 +180,15 @@ class DCPServer:
 
         return True
 
-    def user_motd(self, user):
+    def user_motd(self, user, proto):
         if not self.motd:
-            user.send(self, user, 'motd', {})
+            proto.send(self, user, 'motd', {})
             return
 
         kval = {
             'text' : [self.motd],
         }
-        user.send_multipart(self, user, 'motd', ['text'], kval)
+        proto.send_multipart(self, user, 'motd', ['text'], kval)
 
     def ping_timeout(self, proto):
         if proto.timeout:
