@@ -177,7 +177,7 @@ class DCPServer:
         password = crypt.crypt(password, crypt.mksalt())
 
         # Bang
-        yield from self.proto_store.create_user(name, password, gecos)
+        yield from self.proto_store.create_user(name, gecos, password)
 
         # Clear the user cache
         self.get_any_target.clear()
