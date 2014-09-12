@@ -1,8 +1,9 @@
-from command import Command, register
-import parser
-
 import asyncio
-import hmac
+from crypt import crypt
+from hmac import compare_digest
+
+import parser
+from command import Command, register
 
 
 class Signon(Command):
@@ -45,6 +46,5 @@ class Signon(Command):
         options = line.kval.get('options', [])
 
         yield from server.user_enter(proto, name, options)
-
 
 register['signon'] = Signon()
