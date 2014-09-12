@@ -1,5 +1,6 @@
-from math import ceil
-from random import uniform
+import asyncio
+import crypt
+
 from config import UserConfig
 from acl import UserACLSet
 
@@ -29,7 +30,22 @@ class User:
 
     @gecos.setter
     def gecos(self, value):
-        self._gecos = gecos
+        self._gecos = value
+        asyncio.Task(self.server.proto_store.set_user, self.name,
+                     gecos=value)
+
+    @property
+    def password(self):
+        ret = (yield from self.server.get_user(name))['password']
+        return ret
+
+    @password.setter
+    def password(self, value):
+        if not value.startswith('$'):
+            value = crypt.crypt(value, crypt.mksalt())
+
+        asyncio.Task(self.server.proto_store.set_user, self.name,
+                     password=value)
 
     def send(self, source, target, command, kval=None):
         if kval is None:

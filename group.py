@@ -13,7 +13,7 @@ class Group:
                  ts=None):
         self.server = server
         self.name = name
-        self.topic = topic
+        self._topic = topic
         self.acl = acl
         self.config = config
         self.users = set()
@@ -32,6 +32,17 @@ class Group:
 
         if not self.name.startswith('#'):
             self.name = '#' + self.name
+
+    @property
+    def topic(self):
+        return self._topic
+
+    @topic.setter
+    def topic(self, value):
+        self._topic = value
+
+        asyncio.Task(self.server.proto_store.set_group, self.name,
+                     topic=value)
 
     def member_add(self, user, reason=None):
         if user in self.users:
