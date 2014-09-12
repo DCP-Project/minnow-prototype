@@ -93,7 +93,8 @@ class DCPBaseProto(asyncio.Protocol):
 
         self.rdns.cancel()
 
-        self.server.user_exit(self.user, self)
+        if self.user:
+            self.server.user_exit(self.user, self)
 
         for callback in self.callbacks.values():
             callback.cancel()
@@ -123,12 +124,12 @@ class DCPBaseProto(asyncio.Protocol):
 
     @staticmethod
     def _proto_name(target):
-        if isinstance(target, (User, Group, DCPBaseProto)):
+        if isinstance(target, DCPServer):
+            return '=' + target.name
+        elif hasattr(target, 'name'):
             # XXX for now # is implicit with Group.
             # this is subject to change
             return target.name
-        elif isinstance(target, DCPServer):
-            return '=' + target.name
         elif target is None:
             return '*'
         else:

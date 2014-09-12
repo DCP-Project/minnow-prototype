@@ -76,7 +76,7 @@ class DCPServer:
 
         if proto.user:
             try:
-                yield from instance.registered(self, proto.user, line)
+                yield from instance.registered(self, proto.user, proto, line)
             except CommandNotImplementedError:
                 self.error(proto, line.command, 'This command may only be ' \
                     'used before signon', False)
@@ -104,7 +104,7 @@ class DCPServer:
                         'isn\'t your fault)')
 
     def user_enter(self, proto, name, options):
-        user = self.get_any_target(name)
+        user = (yield from self.get_any_target(name))
         proto.user = self.online_users[name] = user
         user.sessions.add(proto)
 
@@ -142,41 +142,42 @@ class DCPServer:
             # Part them from all groups
             group.member_del(user, permanent=True)
 
-    def user_register(self, proto, name, gecos, password):
+    @asyncio.coroutine
+    def user_register(self, proto, name, gecos, password, command):
         if name is None:
-            self.error(proto, line.command, 'No handle', False)
+            self.error(proto, command, 'No handle', False)
             return False
 
         if valid_handle.match(name) is None:
-            self.error(proto, line.command, 'Invalid handle', False,
+            self.error(proto, command, 'Invalid handle', False,
                        {'handle' : [name]})
             return False
 
         if len(name) > parser.MAXTARGET:
-            self.error(proto, line.command, 'Handle is too long', False,
+            self.error(proto, command, 'Handle is too long', False,
                        {'handle' : [name]})
             return False
 
         f = yield from self.proto_store.get_user(name)
         if f is not None:
-            self.error(proto, line.command, 'Handle already registered', False,
+            self.error(proto, command, 'Handle already registered', False,
                        {'handle' : [name]})
             return False
 
         if len(gecos) > parser.MAXTARGET:
-            self.error(proto, line.command, 'GECOS is too long', False,
+            self.error(proto, command, 'GECOS is too long', False,
                        {'gecos' : [gecos]})
             return False
 
         if password is None or len(password) < 5:
             # Password is not sent back for security reasons
-            self.error(proto, line.command, 'Bad password', False)
+            self.error(proto, command, 'Bad password', False)
             return False
 
         password = crypt.crypt(password, crypt.mksalt())
 
         # Bang
-        asyncio.Task(self.proto_store.create_user(name, password, gecos))
+        yield from self.proto_store.create_user(name, password, gecos)
 
         return True
 
@@ -205,7 +206,7 @@ class DCPServer:
     def conn_timeout(self, proto):
         if proto.user:
             # They've signed on, no need
-            user.call_cancel('signon')
+            proto.call_cancel('signon')
             return
 
         self.error(proto, '*', 'Connection timed out')
@@ -219,9 +220,9 @@ class DCPServer:
         elif target in self.online_users:
             return self.online_users[target]
 
-    @functools.lru_cache(maxsize=max_cache)
     @asyncio.coroutine
-    def get_any_target(self, target):
+    @functools.lru_cache(maxsize=max_cache)
+    def get_any_target(self, target, *data):
         """ Get a target in any state
 
         Note the target is offline if proto is None
@@ -235,15 +236,21 @@ class DCPServer:
 
         if target.startswith('#'):
             g_data = (yield from self.proto_store.get_group(target))
+            if g_data is None:
+                return None
+
             acl_data = (yield from self.proto_store.get_group_acl(target))
-            acl_set = GroupACLSet(server, target, acl_data)
+            acl_set = GroupACLSet(self, target, acl_data)
 
             return Group(self, target, g_data['topic'], acl_set,
                          None, g_data['timestamp'])
         else:
             u_data = (yield from self.proto_store.get_user(target))
+            if u_data is None:
+                return None
+
             acl_data = (yield from self.proto_store.get_user_acl(target))
-            acl_set = UserACLSet(server, target, acl_data)
+            acl_set = UserACLSet(self, target, acl_data)
 
             return User(self, target, u_data['gecos'], acl_set)
 

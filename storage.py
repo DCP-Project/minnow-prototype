@@ -116,9 +116,9 @@ class Database:
 s_get_user = 'SELECT "user".* FROM "user" WHERE "name"=?'
 
 s_get_user_acl = 'SELECT "acl_user".acl,"acl_user".timestamp,"user2".name ' \
-    'FROM "acl_user","user" WHERE "user".name=? AND ' \
-    '"acl_user".user_id="user".id LEFT OUTER JOIN user AS user2 ' \
-    '"acl_user".setter_id="user2".id'
+    'FROM "acl_user","user" LEFT OUTER JOIN user AS user2 ON ' \
+    '"acl_user".setter_id="user2".id WHERE "user".name=? AND ' \
+    '"acl_user".user_id="user".id '
 
 s_get_user_config = 'SELECT "config_user".* FROM "config_user","user" WHERE ' \
     '"user".name=? AND "config_user".user_id="user".id'
@@ -126,13 +126,14 @@ s_get_user_config = 'SELECT "config_user".* FROM "config_user","user" WHERE ' \
 s_get_group = 'SELECT "group".* FROM "group" WHERE "name"=?'
 
 s_get_group_acl = 'SELECT "acl_group".acl,"acl_group".timestamp,"user".name ' \
-    'FROM "acl_group","group" WHERE "group".name=? LEFT OUTER JOIN "user" ' \
-    'ON "acl_group".user_id="user".id'
+    'FROM "acl_group","group" LEFT OUTER JOIN "user" ' \
+    'ON "acl_group".user_id="user".id WHERE "group".name=?'
 
 s_get_group_acl_user = 'SELECT "acl_group".*,"user2".name FROM ' \
-    '"acl_group","user" WHERE "group".name=? AND "user".name=? ' \
-    'AND "group".id="acl_group".group_id AND "user".id="acl_user".user_id ' \
-    'LEFT OUTER JOIN "user" as "user2" "acl_user".setter_id="user2".id'
+    '"acl_group","user" LEFT OUTER JOIN "user" as "user2" ON ' \
+    '"acl_user".setter_id="user2".id WHERE "group".name=? AND ' \
+    '"user".name=? AND "group".id="acl_group".group_id AND ' \
+    '"user".id="acl_user".user_id'
 
 s_get_group_config = 'SELECT "config_group".*,"user".name AS username FROM ' \
     '"config_group","user","group" WHERE "group".name=? AND ' \
@@ -200,7 +201,7 @@ class ProtocolStorage:
         return c.fetchone()
 
     def get_user_acl(self, name):
-        c = self.database.read(get_user_acl, (name,))
+        c = self.database.read(s_get_user_acl, (name,))
         return c.fetchall()
 
     def get_user_config(self, name):
