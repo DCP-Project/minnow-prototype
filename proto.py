@@ -93,7 +93,7 @@ class DCPBaseProto(asyncio.Protocol):
 
         self.rdns.cancel()
 
-        self.server.user_exit(self.user)
+        self.server.user_exit(self.user, self)
 
         for callback in self.callbacks.values():
             callback.cancel()

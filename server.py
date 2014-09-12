@@ -106,6 +106,7 @@ class DCPServer:
     def user_enter(self, proto, name, options):
         user = self.get_any_target(name)
         proto.user = self.online_users[name] = user
+        user.sessions.add(proto)
 
         user.options = options
 
@@ -132,11 +133,10 @@ class DCPServer:
         user.timeout = False
         self.ping_timeout(proto)
 
-    def user_exit(self, user):
-        if user is None:
-            return
-
-        del self.online_users[user.name]
+    def user_exit(self, user, proto):
+        user.sessions.discard(proto)
+        if not user.sessions:
+            del self.online_users[user.name]
 
         for group in list(user.groups):
             # Part them from all groups
@@ -241,5 +241,5 @@ class DCPServer:
         else:
             u_data = (yield from self.proto_store.get_user(target))
             acl = (yield from self.proto_store.get_user_acl(target))
-            return User(None, target, u_data['gecos'], UserACLSet(acl))
+            return User(self, target, u_data['gecos'], UserACLSet(acl))
 
