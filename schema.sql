@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS 'acl_user' (
     user_id INTEGER NOT NULL,
     setter_id INTEGER,
     timestamp INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    reason TEXT,
     FOREIGN KEY(user_id) REFERENCES 'user(id)' ON DELETE CASCADE ON UPDATE
         CASCADE,
     FOREIGN KEY(setter_id) REFERENCES 'user(id)' ON DELETE SET NULL ON UPDATE
@@ -47,6 +48,7 @@ CREATE TABLE IF NOT EXISTS 'acl_group' (
     group_id INTEGER NOT NULL,
     setter_id INTEGER,
     timestamp INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    reason TEXT,
     FOREIGN KEY(user_id) REFERENCES 'user(id)' ON DELETE CASCADE ON UPDATE
         CASCADE,
     FOREIGN KEY(group_id) REFERENCES 'group(id)' ON DELETE CASCADE ON UPDATE

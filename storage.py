@@ -142,13 +142,13 @@ s_create_user = 'INSERT INTO "user" (name,gecos,password) VALUES (?,?,?)'
 
 s_create_group = 'INSERT INTO "group" (name,topic) VALUES(?,?)'
 
-s_create_user_acl = 'INSERT INTO "acl_user" (acl,user_id) SELECT ?,"user".id ' \
-    'FROM "user" WHERE "user".name=?'
+s_create_user_acl = 'INSERT INTO "acl_user" (acl,user_id,reason) VALUES(' \
+    '(SELECT ?,"user".id FROM "user" WHERE "user".name=?), ?)'
 
 s_create_group_acl = 'INSERT INTO "acl_group" (acl,group_id,user_id,' \
-    'setter_id) VALUES((SELECT ?),(SELECT "group".id FROM "group" WHERE ' \
-    '"group".name=?),(SELECT "user".id FROM "user" WHERE "user".name=?),' \
-    '(SELECT "user".id FROM "user" WHERE "user".name=?))'
+    'setter_id,reason) VALUES((SELECT ?),(SELECT "group".id FROM "group" ' \
+    'WHERE "group".name=?),(SELECT "user".id FROM "user" WHERE ' \
+    '"user".name=?), (SELECT "user".id FROM "user" WHERE "user".name=?), ?)'
 
 s_set_user = 'UPDATE "user" SET gecos=IFNULL(?,gecos),password=' \
     'IFNULL(?,password) WHERE "user".name=?'
@@ -231,12 +231,12 @@ class ProtocolStorage:
     def create_group(self, name, topic):
         return self.database.modify(s_create_group, (name, topic))
 
-    def create_user_acl(self, name, acl, setter=None):
-        return self.database.modify(s_create_user_acl, (acl,name))
+    def create_user_acl(self, name, acl, setter=None, reason=None):
+        return self.database.modify(s_create_user_acl, (acl, name, reason))
 
-    def create_group_acl(self, name, username, acl, setter=None):
+    def create_group_acl(self, name, username, acl, setter=None, reason=None):
         return self.database.modify(s_create_group_acl,
-                                (acl, name, username, setter))
+                                (acl, name, username, setter, reason))
 
     def set_user(self, name, *, gecos=None, password=None):
         return self.database.modify(s_set_user, (gecos, password))
