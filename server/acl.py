@@ -102,8 +102,8 @@ class UserACLSet:
     def add(self, acl, setter=None, reason=None):
         self._add_nocommit(acl, setter, reason)
 
-        asyncio.Task(self.server.proto_store.create_user_acl, self.user,
-                     acl, reason)
+        asyncio.async(self.server.proto_store.create_user_acl(self.user,
+                      acl, reason))
 
     def delete(self, acl):
         if acl not in self.acl_map:
@@ -111,7 +111,7 @@ class UserACLSet:
 
         del self.acl_map[acl]
 
-        asyncio.Task(self.server.proto_store.del_user_acl, acl, self.user)
+        asyncio.async(self.server.proto_store.del_user_acl(acl, self.user))
 
 class GroupACLSet:
     __slots__ = ['server', 'group', 'acl_map']
@@ -166,8 +166,8 @@ class GroupACLSet:
         user = getattr(user, 'name', user)
         self._add_nocommit(user, acl, setter, reason)
 
-        asyncio.Task(self.server.proto_store.create_group_acl, self.group,
-                     user, acl, setter, reason)
+        asyncio.async(self.server.proto_store.create_group_acl(self.group,
+                      user, acl, setter, reason))
 
     def delete(self, user, acl):
         user = getattr(user, 'name', user)
@@ -176,8 +176,8 @@ class GroupACLSet:
 
         del self.acl_map[user][acl]
 
-        asyncio.Task(self.server.proto_store.del_group_acl, self.group, user,
-                     acl)
+        asyncio.async(self.server.proto_store.del_group_acl(self.group, user,
+                      acl))
 
     def delete_all(self, user):
         self.acl_map.pop(user, None)

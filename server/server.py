@@ -42,7 +42,7 @@ class DCPServer:
         self.motd_load()
 
         # Start this loop
-        asyncio.Task(self.process())
+        asyncio.async(self.process())
 
     def motd_load(self):
         try:

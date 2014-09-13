@@ -31,8 +31,8 @@ class User:
     @gecos.setter
     def gecos(self, value):
         self._gecos = value
-        asyncio.Task(self.server.proto_store.set_user, self.name,
-                     gecos=value)
+        asyncio.async(self.server.proto_store.set_user(self.name,
+                      gecos=value))
 
     @property
     def password(self):
@@ -44,8 +44,8 @@ class User:
         if not value.startswith('$'):
             value = crypt.crypt(value, crypt.mksalt())
 
-        asyncio.Task(self.server.proto_store.set_user, self.name,
-                     password=value)
+        asyncio.async(self.server.proto_store.set_user(self.name,
+                      password=value))
 
     def send(self, source, target, command, kval=None):
         if kval is None:

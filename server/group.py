@@ -41,8 +41,8 @@ class Group:
     def topic(self, value):
         self._topic = value
 
-        asyncio.Task(self.server.proto_store.set_group, self.name,
-                     topic=value)
+        asyncio.async(self.server.proto_store.set_group(self.name,
+                      topic=value))
 
     def member_add(self, user, reason=None):
         if user in self.users:

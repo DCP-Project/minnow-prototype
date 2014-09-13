@@ -9,8 +9,6 @@ import traceback
 import server.parser
 
 from server.server import DCPServer
-from server.user import User
-from server.group import Group
 from server.errors import *
 from settings import *
 
@@ -33,6 +31,7 @@ def rdns_check(ip, future):
         if future.cancelled():
             return
         future.set_result(ip)
+
 
 class DCPBaseProto(asyncio.Protocol):
     """ This is the asyncio connection stuff...
