@@ -98,17 +98,6 @@ class Group:
         self.users.remove(user)
         user.groups.remove(self)
 
-        kval = defaultdict(list)
-        if not reason:
-            reason = ['']
-
-        kval['reason'].append(reason)
-
-        if permanent:
-            kval['quit'] = '*'
-
-        self.send(self, user, 'group-exit', kval)
-
     def message(self, source, message):
         # TODO various ACL checks
         if isinstance(source, User) and source not in self.users:

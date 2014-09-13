@@ -3,7 +3,7 @@ from server.command import Command, register
 import parser
 import asyncio
 
-class group_enter(Command):
+class GroupEnter(Command):
     @asyncio.coroutine
     def registered(self, server, user, proto, line):
         target = line.target
@@ -32,10 +32,15 @@ class group_enter(Command):
                        {'target' : [target]})
             return
 
-        group.member_add(user, line.kval.get('reason', [''])[0])
+        kval = {}
+        reason = line.kval.get('reason')
+        if reason is not None:
+            kval['reason'] = [reason]
+
+        group.member_add(user, reason)
 
 
-class group_exit(Command):
+class GroupExit(Command):
     @asyncio.coroutine
     def registered(self, server, user, proto, line):
         target = line.target
@@ -55,10 +60,16 @@ class group_exit(Command):
                        {'target' : [target]})
             return
 
-        group.member_del(user, line.kval.get('reason', ['']))
+        kval = {}
+        reason = line.kval.get('reason')
+        if reason is not None:
+            kval['reason'] = [reason]
+
+        group.member_del(user, kval)
+        group.send(self, user, 'group-exit', kval)
 
 register.update({
-    'group-enter' : group_enter(),
-    'group-exit' :  group_exit(),
+    'group-enter' : GroupEnter(),
+    'group-exit' :  GroupExit(),
 })
 

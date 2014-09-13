@@ -133,14 +133,23 @@ class DCPServer:
         user.timeout = False
         self.ping_timeout(proto)
 
-    def user_exit(self, user, proto):
+    def user_exit(self, user, proto, reason=None):
         user.sessions.discard(proto)
         if not user.sessions:
             del self.online_users[user.name.lower()]
 
+        kval = {
+            'quit' : ['*'],
+        }
+
+        if reason is not None:
+            kval['reason'] = [reason]
+
         for group in list(user.groups):
             # Part them from all groups
-            group.member_del(user, permanent=True)
+            group.member_del(user)
+
+            group.send(self, user, 'group-exit', kval)
 
     @asyncio.coroutine
     def user_register(self, proto, name, gecos, password, command):
