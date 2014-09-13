@@ -1,17 +1,17 @@
 import asyncio
 import crypt
 
-from server.config import UserConfig
+from server.property import UserProperty
 from server.acl import UserACLSet
 
 class User:
-    def __init__(self, server, name, gecos, acl=None, config=None,
+    def __init__(self, server, name, gecos, acl=None, property=None,
                  roster=None, options=[]):
         self.server = server
         self.name = name
         self._gecos = gecos
         self.acl = acl
-        self.config = config # TODO
+        self.property = property # TODO
         self.roster = roster # TODO
         self.options = options # TODO
 
@@ -21,8 +21,8 @@ class User:
         if self.acl is None:
             self.acl = UserACLSet()
 
-        if self.config is None:
-            self.config = UserConfig()
+        if self.property is None:
+            self.property = UserProperty()
 
     @property
     def gecos(self):

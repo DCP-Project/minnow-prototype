@@ -4,18 +4,18 @@ from collections import defaultdict
 from server.user import User
 from server.parser import MAXFRAME
 from server.acl import GroupACLSet
-from server.config import GroupConfig
+from server.property import GroupProperty
 from server.errors import *
 
 class Group:
     """ Like an IRC channel """
-    def __init__(self, server, name, topic=None, acl=None, config=None,
+    def __init__(self, server, name, topic=None, acl=None, property=None,
                  ts=None):
         self.server = server
         self.name = name
         self._topic = topic
         self.acl = acl
-        self.config = config
+        self.property = property
         self.users = set()
         self.ts = None
 
@@ -24,8 +24,8 @@ class Group:
         if self.acl is None:
             self.acl = defaultdict(GroupACLSet)
 
-        if self.config is None:
-            self.config = GroupConfig()
+        if self.property is None:
+            self.property = GroupProperty()
 
         if self.ts is None:
             self.ts = round(time.time())

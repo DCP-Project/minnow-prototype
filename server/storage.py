@@ -121,8 +121,8 @@ s_get_user_acl = 'SELECT "acl_user".acl,"acl_user".timestamp,"user2".name ' \
     '"acl_user".setter_id="user2".id WHERE "user".name=? AND ' \
     '"acl_user".user_id="user".id '
 
-s_get_user_config = 'SELECT "config_user".* FROM "config_user","user" WHERE ' \
-    '"user".name=? AND "config_user".user_id="user".id'
+s_get_user_property = 'SELECT "property_user".* FROM "property_user",' \
+    '"user" WHERE "user".name=? AND "property_user".user_id="user".id'
 
 s_get_group = 'SELECT "group".* FROM "group" WHERE "name"=?'
 
@@ -136,9 +136,9 @@ s_get_group_acl_user = 'SELECT "acl_group".*,"user2".name FROM ' \
     '"user".name=? AND "group".id="acl_group".group_id AND ' \
     '"user".id="acl_user".user_id'
 
-s_get_group_config = 'SELECT "config_group".*,"user".name AS username FROM ' \
-    '"config_group","user","group" WHERE "group".name=? AND ' \
-    '"group".id="config_group".group_id AND "user".id="config_group".user_id'
+s_get_group_property = 'SELECT "property_group".*,"user".name AS username ' \
+    'FROM "property_group","user","group" WHERE "group".name=? AND ' \
+    '"group".id="property_group".group_id AND "user".id="property_group".user_id'
 
 s_create_user = 'INSERT INTO "user" (name,gecos,password) VALUES (?,?,?)'
 
@@ -157,11 +157,11 @@ s_set_user = 'UPDATE "user" SET gecos=IFNULL(?,gecos),password=' \
 
 s_set_group = 'UPDATE "group" SET topic=? WHERE "group".name=?'
 
-s_set_config_user = 'INSERT OR REPLACE INTO "config_user" (config,value,' \
+s_set_property_user = 'INSERT OR REPLACE INTO "property_user" (property,value,' \
     'user_id,setter_id) VALUES((SELECT ?),(SELECT ?),(SELECT "user".id FROM ' \
     '"user" WHERE "user".name=?))'
 
-s_set_config_group = 'INSERT OR REPLACE INTO "config_group" (config,value,' \
+s_set_property_group = 'INSERT OR REPLACE INTO "property_group" (property,value,' \
     'group_id,setter_id) VALUES((SELECT ?),(SELECT ?),(SELECT "group".id ' \
     'FROM "group" WHERE "group".name=?),(SELECT "user".id FROM "user" WHERE ' \
     '"user".name=?))'
@@ -186,8 +186,8 @@ s_del_group = 'DELETE FROM "group" WHERE "group".name=?'
 
 
 class ProtocolStorage:
-    """ Basic protocol storage of DCP. Stores users, groups, user configs, and
-    (soon) roster data. This class is so big because DCP's storage is all
+    """ Basic protocol storage of DCP. Stores users, groups, user properties,
+    and (soon) roster data. This class is so big because DCP's storage is all
     inter-dependent. """
 
     def __init__(self, dbname, schema='data/schema.sql'):
@@ -205,8 +205,8 @@ class ProtocolStorage:
         c = self.database.read(s_get_user_acl, (name,))
         return c.fetchall()
 
-    def get_user_config(self, name):
-        c = self.database.read(s_get_user_config, (name,))
+    def get_user_property(self, name):
+        c = self.database.read(s_get_user_property, (name,))
         return c.fetchall()
 
     def get_group(self, name):
@@ -221,8 +221,8 @@ class ProtocolStorage:
         c = self.database.read(s_get_group_acl_user, (name,username))
         return c.fetchall()
 
-    def get_group_config(self, name):
-        c = self.database.read(s_get_group_config, (name,))
+    def get_group_property(self, name):
+        c = self.database.read(s_get_group_property, (name,))
         return c.fetchall()
 
     def create_user(self, name, gecos, password):
@@ -240,7 +240,7 @@ class ProtocolStorage:
 
     def create_group_acl(self, name, username, acl, setter=None, reason=None):
         return self.database.modify(s_create_group_acl,
-                                (acl, name, username, setter, reason))
+                                    (acl, name, username, setter, reason))
 
     def set_user(self, name, *, gecos=None, password=None):
         return self.database.modify(s_set_user, (gecos, password, name))
@@ -248,18 +248,18 @@ class ProtocolStorage:
     def set_group(self, name, *, topic=None):
         return self.database.modify(s_set_group, (topic, name))
 
-    def set_config_user(self, name, config, value=None, setter=None):
-        return self.database.modify(s_set_config_user, (config, value, name))
+    def set_property_user(self, name, property, value=None, setter=None):
+        return self.database.modify(s_set_property_user, (property, value, name))
 
-    def create_config_user(self, name, config, value=None, setter=None):
-        return self.set_config_user(name, config, value, setter)
+    def create_property_user(self, name, property, value=None, setter=None):
+        return self.set_property_user(name, property, value, setter)
 
-    def set_config_group(self, name, username, config, value=None, setter=None):
-        return self.database.modify(s_set_config_group,
-                                (config, value, name, username))
+    def set_property_group(self, name, username, property, value=None, setter=None):
+        return self.database.modify(s_set_property_group,
+                                    (property, value, name, username))
 
-    def create_config_group(self, name, username, config, value=None, setter=None):
-        return self.set_config_group(c)
+    def create_property_group(self, name, username, property, value=None, setter=None):
+        return self.set_property_group(c)
 
     def del_user(self, name):
         return self.database.modify(s_del_user, (name,))

@@ -20,9 +20,9 @@ CREATE TABLE IF NOT EXISTS 'acl_user' (
     UNIQUE(acl, user_id)
 );
 
-CREATE TABLE IF NOT EXISTS 'config_user' (
+CREATE TABLE IF NOT EXISTS 'property_user' (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    config VARCHAR(32) NOT NULL,
+    property VARCHAR(32) NOT NULL,
     value VARCHAR(32),
     user_id INTEGER NOT NULL,
     setter_id INTEGER,
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS 'config_user' (
         CASCADE,
     FOREIGN KEY(setter_id) REFERENCES 'user(id)' ON DELETE SET NULL ON UPDATE
         CASCADE,
-    UNIQUE(config, user_id)
+    UNIQUE(property, user_id)
 );
 
 CREATE TABLE IF NOT EXISTS 'group' (
@@ -58,9 +58,9 @@ CREATE TABLE IF NOT EXISTS 'acl_group' (
     UNIQUE(acl, user_id, group_id)
 );
 
-CREATE TABLE IF NOT EXISTS 'config_group' (
+CREATE TABLE IF NOT EXISTS 'property_group' (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    config VARCHAR(32) NOT NULL,
+    property VARCHAR(32) NOT NULL,
     value VARCHAR(32),
     group_id INTEGER NOT NULL,
     setter_id INTEGER,
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS 'config_group' (
         CASCADE,
     FOREIGN KEY(setter_id) REFERENCES 'user(id)' ON DELETE SET NULL ON
         UPDATE CASCADE,
-    UNIQUE(config, group_id)
+    UNIQUE(property, group_id)
 );
 
 CREATE TABLE IF NOT EXISTS 'version' (

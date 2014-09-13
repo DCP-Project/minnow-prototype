@@ -2,7 +2,7 @@ import asyncio
 
 from server.command import Command, register
 import server.acl
-import server.config
+import server.property
 
 class Whois(Command):
     @asyncio.coroutine
@@ -36,10 +36,10 @@ class Whois(Command):
             })
 
         if t_user.groups:
-            group_prop = config.GroupConfigValues.private
-            user_acl = config.UserConfigValues.user_auspex
+            group_prop = property.GroupPropertyValues.private
+            user_acl = property.UserPropertyValues.user_auspex
             kval['groups'] = [group for group in user.groups if not
-                              (group_prop in group.config and not user_acl in
+                              (group_prop in group.property and not user_acl in
                                user.acl)]
 
         # FIXME - if WHOIS info is too big, split it up

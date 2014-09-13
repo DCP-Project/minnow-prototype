@@ -1,18 +1,18 @@
 import enum
 
-class UserConfigValues(enum.Enum):
+class UserPropertyValues(enum.Enum):
     private = ('private', None)
     wallops = ('wallops', None)
     banned  = ('banned',  int)
 
 
-class GroupConfigValues(enum.Enum):
+class GroupPropertyValues(enum.Enum):
     private = ('private', None)
     invite  = ('invite',  str)
     topic   = ('topic',   str)
 
 
-class BaseConfig:
+class BaseProperty:
     __slots__ = ['options', 'option_map']
 
     def __init__(self, options):
@@ -49,15 +49,15 @@ class BaseConfig:
         return iter(self.options.items())
 
 
-class UserConfig(BaseConfig):
-    __slots__ = BaseConfig.__slots__
+class UserProperty(BaseProperty):
+    __slots__ = BaseProperty.__slots__
 
     def __init__(self):
-        return super().__init__(UserConfigValues)
+        return super().__init__(UserPropertyValues)
 
 
-class GroupConfig(BaseConfig):
-    __slots__ = BaseConfig.__slots__
+class GroupProperty(BaseProperty):
+    __slots__ = BaseProperty.__slots__
 
     def __init__(self):
-        return super().__init__(GroupConfigValues)
+        return super().__init__(GroupPropertyValues)
