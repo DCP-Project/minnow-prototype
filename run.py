@@ -6,7 +6,7 @@ import logging
 from functools import partial
 
 from server.server import DCPServer
-from server.proto import DCPProto, DCPJSONProto
+from server.proto import DCPProto, DCPJSONProto, DCPUnixProto
 from settings import *
 
 logging.basicConfig(level=log_level)
@@ -29,11 +29,13 @@ loop = asyncio.get_event_loop()
 state = DCPServer(servname)
 coro = [
     loop.create_server(partial(DCPProto, state), *listen, ssl=ctx),
-    loop.create_server(partial(DCPJSONProto, state), *listen_json, ssl=ctx)
+    loop.create_server(partial(DCPJSONProto, state), *listen_json, ssl=ctx),
+    loop.create_unix_server(partial(DCPUnixProto, state), unix_path),
 ]
 done, pending = loop.run_until_complete(asyncio.wait(coro))
 logger.info('Serving on %r', listen)
 logger.info('Serving JSON on %r', listen_json)
+logger.info('Unix control socket at %r', unix_path)
 
 try:
     loop.run_forever()

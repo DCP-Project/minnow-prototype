@@ -73,19 +73,27 @@ class DCPServer:
             self.error(proto, line.command, 'No such command', False)
             return
 
-        if proto.user:
-            try:
-                yield from instance.registered(self, proto.user, proto, line)
-            except CommandNotImplementedError:
-                self.error(proto, line.command, 'This command may only be ' \
-                    'used before signon', False)
+        if hasattr(proto, 'user'):
+            if proto.user:
+                try:
+                    yield from instance.registered(self, proto.user, proto,
+                                                   line)
+                except CommandNotImplementedError:
+                    self.error(proto, line.command, 'This command may only ' \
+                               'be used before signon', False)
+            else:
+                try:
+                    yield from instance.unregistered(self, proto, line)
+                except CommandNotImplementedError:
+                    self.error(proto, line.command, 'You are not signed on',
+                               False)
         else:
-            # This will have to change later for sts and stuff.
+            # IPC
             try:
-                yield from instance.unregistered(self, proto, line)
+                yield from instance.ipc(self, proto, line)
             except CommandNotImplementedError:
-                self.error(proto, line.command, 'You are not signed on',
-                           False)
+                self.error(proto, line.command, 'Command may not be used ' \
+                           'over IPC')
 
     @asyncio.coroutine
     def process(self):

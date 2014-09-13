@@ -48,53 +48,22 @@ class DCPBaseProto(asyncio.Protocol):
         # Global state
         self.server = server
 
-        # User state
-        self.user = None
-
-        # Callbacks
-        self.callbacks = dict()
-
-        self.peername = None
-        self.host = None
-
-        self.transport = None
-
-        self.rdns = asyncio.Future()
-
         # Multipart storage stuff
         self.multipart = dict()
 
-    def set_host(self, future):
-        if future.cancelled():
-            return
-        logger.info('Host for %r set to [%s]', self.peername, future.result())
-        self.host = future.result()
+        # Callbacks storage
+        self.callbacks = dict()
+
+        self.transport = None
 
     def connection_made(self, transport):
         self.peername = transport.get_extra_info('peername')
         logger.info('Connection from %s', self.peername)
 
-        self.host = self.peername[0]
-
         self.transport = transport
-
-        # Begin DNS lookup
-        self.rdns.add_done_callback(self.set_host)
-        dns = asyncio.wait_for(rdns_check(self.peername[0], self.rdns), 5)
-        asyncio.Task(dns)
-
-        # Start the connection timeout
-        loop = asyncio.get_event_loop()
-        cb = loop.call_later(60, self.server.conn_timeout, self)
-        self.callbacks['signon'] = cb
 
     def connection_lost(self, exc):
         logger.info('Connection lost from %r (reason %s)', self.peername, str(exc))
-
-        self.rdns.cancel()
-
-        if self.user:
-            self.server.user_exit(self.user, self)
 
         for callback in self.callbacks.values():
             callback.cancel()
@@ -252,12 +221,58 @@ class DCPBaseProto(asyncio.Protocol):
         return self.call_later(name, delay, callback, *args)
 
 
-class DCPProto(DCPBaseProto):
+class DCPSocketProto(DCPBaseProto):
+    def __init__(self, server, frame):
+        super().__init__(server, frame)
+
+        # User state
+        self.user = None
+
+        self.peername = None
+        self.host = None
+
+        self.rdns = asyncio.Future()
+
+    def set_host(self, future):
+        if future.cancelled():
+            return
+        logger.info('Host for %r set to [%s]', self.peername, future.result())
+        self.host = future.result()
+
+    def connection_made(self, transport):
+        super().__init__(transport)
+
+        self.host = self.peername[0]
+
+        # Begin DNS lookup
+        self.rdns.add_done_callback(self.set_host)
+        dns = asyncio.wait_for(rdns_check(self.peername[0], self.rdns), 5)
+        asyncio.async(dns)
+
+        # Start the connection timeout
+        loop = asyncio.get_event_loop()
+        cb = loop.call_later(60, self.server.conn_timeout, self)
+        self.callbacks['signon'] = cb
+
+    def connection_lost(self, exc):
+        super().__init__(exc)
+
+        self.rdns.cancel()
+
+        if self.user:
+            self.server.user_exit(self.user, self)
+
+
+class DCPProto(DCPSocketProto):
     def __init__(self, server):
         super().__init__(server, parser.Frame)
 
 
-class DCPJSONProto(DCPBaseProto):
+class DCPJSONProto(DCPSocketProto):
     def __init__(self, server):
         super().__init__(server, parser.JSONFrame)
 
+
+class DCPUnixProto(DCPBaseProto):
+    def __init__(self, server):
+        super().__init__(server, parser.JSONFrame)

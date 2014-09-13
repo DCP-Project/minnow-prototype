@@ -18,6 +18,9 @@ servpass = None
 # Allow registrations
 allow_register = True
 
+# Path to Unix control socket
+unix_path = 'data/control'
+
 ### Debug options
 
 # Debug level (set to debug, please)

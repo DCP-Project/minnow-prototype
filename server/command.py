@@ -17,11 +17,11 @@ class Command:
         "Execute this action for registered users"
         raise CommandNotImplementedError
 
-    def sts(self, server, remote, line):
+    def sts(self, server, remote, proto, line):
         "Execute this action for server-to-server"
         raise CommandNotImplementedError
 
-    def ipc(self, server, line):
+    def ipc(self, server, proto, line):
         "Execute an action for IPC commands"
         raise CommandNotImplementedError
 
