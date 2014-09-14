@@ -6,7 +6,7 @@ import random
 import logging
 import traceback
 
-import server.parser
+import server.parser as parser
 
 from server.server import DCPServer
 from server.errors import *
@@ -240,7 +240,7 @@ class DCPSocketProto(DCPBaseProto):
         self.host = future.result()
 
     def connection_made(self, transport):
-        super().__init__(transport)
+        super().connection_made(transport)
 
         self.host = self.peername[0]
 
@@ -255,7 +255,7 @@ class DCPSocketProto(DCPBaseProto):
         self.callbacks['signon'] = cb
 
     def connection_lost(self, exc):
-        super().__init__(exc)
+        super().connection_lost(exc)
 
         self.rdns.cancel()
 
