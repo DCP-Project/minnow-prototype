@@ -2,7 +2,7 @@ import asyncio
 import crypt
 import hmac
 
-import parser
+import server.parser as parser
 
 from server.command import Command, register
 

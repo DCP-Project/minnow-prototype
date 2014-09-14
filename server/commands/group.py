@@ -1,7 +1,8 @@
-from server.command import Command, register
-
-import parser
 import asyncio
+
+import server.parser as parser
+
+from server.command import Command, register
 
 class GroupEnter(Command):
     @asyncio.coroutine
