@@ -106,4 +106,3 @@ class Database:
             val = self.locks.nreaders.dec()
             if val == 0:
                 self.locks.accessing.release()
-

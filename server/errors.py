@@ -82,6 +82,7 @@ class ACLError(DCPError):
     "Base error for ACL errors"
     pass
 
+
 class CommandACLError(ACLError, CommandError):
     "Not enough permission to execute command"
     def __init__(self, acl, *args):
@@ -107,4 +108,3 @@ class StorageError(DCPError):
 class StorageBackendNotFoundError(StorageError):
     "Could not find given storage backend"
     pass
-

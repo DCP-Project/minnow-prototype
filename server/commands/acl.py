@@ -3,6 +3,7 @@ import asyncio
 from server.command import Command, register
 from server.acl import UserACLValues, GroupACLValues
 
+
 class ACLBase:
     @asyncio.coroutine
     def has_grant_group(self, server, user, gtarget, acl):
@@ -39,7 +40,7 @@ class ACLBase:
     def registered(self, server, user, proto, line):
         if acl not in line.kval or not line.kval['acl']:
             server.error(user, line.command, 'No ACL', False,
-                         {'target' : [target]})
+                         {'target': [target]})
             return (None, None)
 
         # Obtain target info
@@ -47,12 +48,12 @@ class ACLBase:
         line.target = target = line.target.lower()
         if target == '*':
             server.error(user, line.command, 'No valid target', False,
-                         {acl : [acl]})
+                         {acl: [acl]})
             return (None, None)
         elif target[0] == '#':
             if acl not in GroupACLValues:
                 server.error(user, line.command, 'Invalid ACL', False,
-                             {'target' : [target], 'acl' : [acl]})
+                             {'target': [target], 'acl': [acl]})
                 return (None, None)
 
             gtarget = (yield from server.get_any_target(target))
@@ -60,25 +61,26 @@ class ACLBase:
 
             if not utarget:
                 server.error(user, line.command, 'No valid user for target',
-                             False, {'target' : [target], 'acl' : [acl]})
+                             False, {'target': [target], 'acl': [acl]})
                 return (None, None)
 
             utarget = (yield from server.get_any_target(utarget.lower()))
         elif target[0] == '=':
             server.error(user, line.command,
                          'ACL\'s can\'t be set on servers yet',
-                         False, {'target' : [target], 'acl' : [acl]})
+                         False, {'target': [target], 'acl': [acl]})
             return (None, None)
         else:
             if acl not in UserACLValues:
                 server.error(user, line.command, 'Invalid ACL', False,
-                             {'target' : [target], 'acl' : [acl]})
+                             {'target': [target], 'acl': [acl]})
                 return (None, None)
 
             gtarget = None
             utarget = (yield from server.get_any_target(target))
 
         return (gtarget, utarget)
+
 
 class ACLSet(ACLBase, Command):
     @asyncio.coroutine
@@ -88,9 +90,9 @@ class ACLSet(ACLBase, Command):
             return
 
         if gtarget:
-            kwds = {'target' : [gtarget.name], 'user' : [utarget.name]}
+            kwds = {'target': [gtarget.name], 'user': [utarget.name]}
         else:
-            kwds = {'target' : [utarget.name]}
+            kwds = {'target': [utarget.name]}
 
         reason = line.kval.get('reason')
         if reason:
@@ -127,9 +129,9 @@ class ACLDel(Command, ACLBase):
             return
 
         if gtarget:
-            kwds = {'target' : [gtarget.name], 'user' : [utarget.name]}
+            kwds = {'target': [gtarget.name], 'user': [utarget.name]}
         else:
-            kwds = {'target' : [utarget.name]}
+            kwds = {'target': [utarget.name]}
 
         reason = line.kval.get('reason')
         if reason:
@@ -158,6 +160,6 @@ class ACLDel(Command, ACLBase):
             utarget.send(server, user, line.command, kwds)
 
 register.update({
-    'acl-set' : ACLSet(),
-    'acl-del' : ACLDel(),
+    'acl-set': ACLSet(),
+    'acl-del': ACLDel(),
 })

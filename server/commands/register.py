@@ -5,6 +5,7 @@ import server.acl as acl
 from server.command import Command, register
 from settings import *
 
+
 class Register(Command):
     @asyncio.coroutine
     def unregistered(self, server, proto, line):
@@ -15,8 +16,8 @@ class Register(Command):
                 return
 
         if not allow_register:
-            server.error(proto, line.command, 'Direct registrations are not ' \
-                       'permitted on this server')
+            server.error(proto, line.command, 'Direct registrations are not '
+                         'permitted on this server')
             return
 
         name = line.kval.get('handle', [None])[0]
@@ -29,9 +30,9 @@ class Register(Command):
             return
 
         kval = {
-            'handle' : [name],
-            'gecos' : [gecos],
-            'message' : ['Registration successful, beginning signon'],
+            'handle': [name],
+            'gecos': [gecos],
+            'message': ['Registration successful, beginning signon'],
         }
         proto.send(server, None, line.command, kval)
 
@@ -57,14 +58,14 @@ class FRegister(Command):
             return
 
         kval = {
-            'handle' : [name],
-            'gecos' : [gecos],
-            'message' : ['Registration successful'],
+            'handle': [name],
+            'gecos': [gecos],
+            'message': ['Registration successful'],
         }
         proto.send(server, None, line.command, kval)
 
 
 register.update({
-    'register' : Register(),
-    'fregister' : FRegister(),
+    'register': Register(),
+    'fregister': FRegister(),
 })

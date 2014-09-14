@@ -4,6 +4,7 @@ from server.command import Command, register
 import server.acl as acl
 import server.property as property
 
+
 class Whois(Command):
     @asyncio.coroutine
     def registered(self, server, user, proto, line):
@@ -15,8 +16,8 @@ class Whois(Command):
         t_user = server.get_any_target(target)
 
         kval = {
-            'handle' : [t_user.name],
-            'gecos' : [t_user.gecos],
+            'handle': [t_user.name],
+            'gecos': [t_user.gecos],
         }
 
         if len(t_user.sessions):
@@ -30,9 +31,9 @@ class Whois(Command):
                 host.append(p.host)
 
             kval.update({
-                'acl' : sorted(user.acl),
-                'ip' : ip,
-                'host' : host,
+                'acl': sorted(user.acl),
+                'ip': ip,
+                'host': host,
             })
 
         if t_user.groups:

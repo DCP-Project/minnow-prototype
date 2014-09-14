@@ -41,7 +41,7 @@ class ProtocolStorage:
         return c.fetchall()
 
     def get_group_acl_user(self, name, username):
-        c = self.database.read(queries.s_get_group_acl_user, (name,username))
+        c = self.database.read(queries.s_get_group_acl_user, (name, username))
         return c.fetchall()
 
     def get_group_property(self, name):
@@ -94,7 +94,7 @@ class ProtocolStorage:
         return self.database.modify(queries.s_del_user, (name,))
 
     def del_user_acl(self, name, acl):
-        return self.database.modify(queries.s_del_user_acl, (acl,name))
+        return self.database.modify(queries.s_del_user_acl, (acl, name))
 
     def del_user_acl_all(self, name):
         return self.database.modify(queries.s_del_user_acl_all, (name,))
@@ -108,4 +108,3 @@ class ProtocolStorage:
 
     def del_group(self, name):
         return self.database.modify(queries.s_del_group, (name,))
-

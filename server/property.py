@@ -1,15 +1,16 @@
 import enum
 
+
 class UserPropertyValues(enum.Enum):
     private = ('private', None)
     wallops = ('wallops', None)
-    banned  = ('banned',  int)
+    banned = ('banned',  int)
 
 
 class GroupPropertyValues(enum.Enum):
     private = ('private', None)
-    invite  = ('invite',  str)
-    topic   = ('topic',   str)
+    invite = ('invite',  str)
+    topic = ('topic',   str)
 
 
 class BaseProperty:

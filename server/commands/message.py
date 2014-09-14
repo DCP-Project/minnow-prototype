@@ -2,6 +2,7 @@ import asyncio
 
 from server.command import Command, register
 
+
 class Message(Command):
     @asyncio.coroutine
     def registered(self, server, user, proto, line):
@@ -12,8 +13,8 @@ class Message(Command):
 
         # Lookup the target...
         if target.startswith(('=', '&')):
-            server.error(user, line.command, 'Cannot message servers yet, sorry',
-                       False, {'target' : [target]})
+            server.error(user, line.command, 'Cannot message servers yet, '
+                         'sorry', False, {'target': [target]})
             return
 
         target = server.get_online_target(target)

@@ -23,19 +23,19 @@ class Signon(Command):
 
         if len(name) > parser.MAXTARGET:
             server.error(proto, line.command, 'Handle is too long', True,
-                       {'handle' : [name]})
+                         {'handle': [name]})
             return
 
         # Retrieve the user info
         user = server.get_any_target(name)
         if user is None:
-            server.error(proto, line.command, 'You are not registered with ' \
-                       'the server', False, {'handle' : [name]})
+            server.error(proto, line.command, 'You are not registered with '
+                         'the server', False, {'handle': [name]})
             return
         elif user.proto:
             # TODO - burst all state to the user
-            server.error(proto, line.command, 'No multiple users at the '\
-                       'moment', True, {'handle' : [name]})
+            server.error(proto, line.command, 'No multiple users at the '
+                         'moment', True, {'handle': [name]})
             return
 
         if 'password' not in line.kval:

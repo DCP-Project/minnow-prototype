@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import asyncio, socket
+import asyncio
+import socket
 import random
 
 import logging
@@ -13,6 +14,7 @@ from server.errors import *
 from settings import *
 
 logger = logging.getLogger(__name__)
+
 
 @asyncio.coroutine
 def rdns_check(ip, future):
@@ -63,7 +65,8 @@ class DCPBaseProto(asyncio.Protocol):
         self.transport = transport
 
     def connection_lost(self, exc):
-        logger.info('Connection lost from %r (reason %s)', self.peername, str(exc))
+        logger.info('Connection lost from %r (reason %s)', self.peername,
+                    str(exc))
 
         for callback in self.callbacks.values():
             callback.cancel()
@@ -86,7 +89,7 @@ class DCPBaseProto(asyncio.Protocol):
                 frame = self.frame.parse(data)
             except ParserError as e:
                 logger.exception('Parser failure')
-                self.error('*', 'Parser failure', {'cause' : [str(e)]}, False)
+                self.error('*', 'Parser failure', {'cause': [str(e)]}, False)
                 continue
 
             asyncio.async(self.server.line_queue.put((self, frame)))
@@ -110,7 +113,8 @@ class DCPBaseProto(asyncio.Protocol):
 
         source = self._proto_name(source)
         target = self._proto_name(target)
-        if kval is None: kval = dict()
+        if kval is None:
+            kval = dict()
 
         frame = self.frame(source, target, command, kval)
         self.transport.write(bytes(frame))
@@ -129,7 +133,7 @@ class DCPBaseProto(asyncio.Protocol):
             keys.extend(exempt_keys)
 
             # Copy all unrelated keys
-            kval2 = {k : v for k, v in kval.items() if k not in keys}
+            kval2 = {k: v for k, v in kval.items() if k not in keys}
             for key in keys:
                 # Temporarily copy
                 kval2[key] = kval[key]
@@ -168,7 +172,7 @@ class DCPBaseProto(asyncio.Protocol):
             return
         else:
             # Fit our data
-            plen = datalen + fit # Actually subtraction
+            plen = datalen + fit  # NOTE: actually subtraction
             split = [data[0+i:plen+i] for i in range(0, datalen, plen)]
             kval['total'] = [str(len(split))]
             for part, data in enumerate(split):
@@ -185,8 +189,8 @@ class DCPBaseProto(asyncio.Protocol):
             return
 
         kval = {
-            'command' : [command],
-            'reason' : [reason],
+            'command': [command],
+            'reason': [reason],
         }
         if extargs:
             kval.update(extargs)

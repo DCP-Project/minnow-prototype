@@ -11,6 +11,7 @@ MAXFRAME = 1400
 MAXTARGET = 48
 MAXCOMMAND = 32
 
+
 class BaseFrame:
     def __init__(self, source, target, command, kval):
         self.source = source
@@ -35,6 +36,7 @@ class BaseFrame:
         """ Get the minimum overhead for a frame with a given set of keys """
         llen = self._generic_len(MAXTARGET, MAXTARGET, command, kval)
         return MAXFRAME - llen
+
 
 class Frame(BaseFrame):
     terminator = b'\0\0'
@@ -120,7 +122,7 @@ class Frame(BaseFrame):
 
         if len(kval) > 0:
             llen += sum(sum((len(k)+len(v2)+2) for v2 in v) for k, v in
-                            kval.items()) - 1
+                        kval.items()) - 1
 
         return llen
 
@@ -177,9 +179,9 @@ class JSONFrame(BaseFrame):
 
     def __bytes__(self):
         header = {
-            'source' : self.source,
-            'target' : self.target,
-            'command' : self.command
+            'source': self.source,
+            'target': self.target,
+            'command': self.command
         }
         dump = (header, self.kval)
 
@@ -198,7 +200,7 @@ class JSONFrame(BaseFrame):
 
         if kval:
             for k, v in kval.items():
-                # Each key : val introduces a minimum of 6 bytes overhead
+                # Each key: val introduces a minimum of 6 bytes overhead
                 baselen += 6 + len(k)
 
                 # Each value adds at least 3 chars of overhead per item
@@ -216,6 +218,7 @@ class JSONFrame(BaseFrame):
     def __repr__(self):
         fmtstr = 'JSONFrame(source={}, target={}, command={}, kval={})'
         return fmtstr.format(self.source, self.target, self.command, self.kval)
+
 
 class Multipart:
     """ A small helper class for multipart messaging """
@@ -240,4 +243,3 @@ class Multipart:
 
     def done(self):
         return self.recieved == self.total
-

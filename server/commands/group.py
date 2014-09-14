@@ -4,6 +4,7 @@ import server.parser as parser
 
 from server.command import Command, register
 
+
 class GroupEnter(Command):
     @asyncio.coroutine
     def registered(self, server, user, proto, line):
@@ -14,12 +15,12 @@ class GroupEnter(Command):
 
         if not target.startswith('#'):
             server.error(user, line.command, 'Invalid group', False,
-                       {'target' : [target]})
+                         {'target': [target]})
             return
 
         if len(target) > parser.MAXTARGET:
             server.error(user, line.command, 'Group name too long', False,
-                       {'target' : [target]})
+                         {'target': [target]})
             return
 
         if target not in server.groups:
@@ -30,7 +31,7 @@ class GroupEnter(Command):
         if group in user.groups:
             assert user in group.users
             server.error(user, line.command, 'You are already entered', False,
-                       {'target' : [target]})
+                         {'target': [target]})
             return
 
         kval = {}
@@ -51,14 +52,14 @@ class GroupExit(Command):
 
         if not target.startswith('#') or target not in server.groups:
             server.error(user, line.command, 'Invalid group', False,
-                       {'target' : [target]})
+                         {'target': [target]})
             return
 
         group = server.groups[target]
         if group not in user.groups:
             assert user not in group.users
-            server.error(user, line.command, 'You are not in that group', False,
-                       {'target' : [target]})
+            server.error(user, line.command, 'You are not in that group',
+                         False, {'target': [target]})
             return
 
         kval = {}
@@ -70,7 +71,6 @@ class GroupExit(Command):
         group.send(self, user, 'group-exit', kval)
 
 register.update({
-    'group-enter' : GroupEnter(),
-    'group-exit' :  GroupExit(),
+    'group-enter': GroupEnter(),
+    'group-exit':  GroupExit(),
 })
-

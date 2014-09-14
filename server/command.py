@@ -12,14 +12,14 @@ class Command:
     def unregistered(self, server, proto, line):
         "Execute this action for unregistered users"
         if id(Command.registered) != id(self.registered):
-            raise RegisteredOnlyError('This command is for registered ' \
-                                      'users only')
+            raise RegisteredOnlyError('This command is for registered users '
+                                      'only')
         raise CommandNotImplementedError('Command not found')
 
     def registered(self, server, user, proto, line):
         "Execute this action for registered users"
         if id(Command.unregistered) != id(self.unregistered):
-            raise UnregisteredOnlyError('This command is for unregistered ' \
+            raise UnregisteredOnlyError('This command is for unregistered '
                                         'users only')
         raise CommandNotImplementedError('Command not found')
 
@@ -41,4 +41,3 @@ for mod in commands.__all__:
     command_mod.append(import_module("server.commands." + mod))
 
 logger.info("%d commands loaded", len(register))
-

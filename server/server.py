@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 # This is subject to change
 valid_handle = re.compile(r'^[^#!=&$,\?\*\[\]][^=$,\?\*\[\]]+$')
 
+
 class DCPServer:
     def __init__(self, name, servpass=servpass):
         self.name = name
@@ -108,8 +109,8 @@ class DCPServer:
                 self.error(proto, line.command, str(e), False)
             except Exception as e:
                 logger.exception('Bug hit! (Exception below)')
-                self.error(proto, line.command, 'Internal server error (this ' \
-                        'isn\'t your fault)')
+                self.error(proto, line.command, 'Internal server error '
+                           '(this isn\'t your fault)')
 
     def user_enter(self, proto, user, options):
         proto.user = self.online_users[user.name.lower()] = user
@@ -121,10 +122,10 @@ class DCPServer:
         proto.call_cancel('signon')
 
         kval = {
-            'name' : [self.name],
-            'time' : [str(round(time.time()))],
+            'name': [self.name],
+            'time': [str(round(time.time()))],
             'version': ['Minnow prototype server', 'v0.1-prealpha'],
-            'options' : [],
+            'options': [],
         }
 
         yield from proto.rdns
@@ -146,7 +147,7 @@ class DCPServer:
             del self.online_users[user.name.lower()]
 
         kval = {
-            'quit' : ['*'],
+            'quit': ['*'],
         }
 
         if reason is not None:
@@ -166,23 +167,23 @@ class DCPServer:
 
         if valid_handle.match(name) is None:
             self.error(proto, command, 'Invalid handle', False,
-                       {'handle' : [name]})
+                       {'handle': [name]})
             return False
 
         if len(name) > parser.MAXTARGET:
             self.error(proto, command, 'Handle is too long', False,
-                       {'handle' : [name]})
+                       {'handle': [name]})
             return False
 
         f = yield from self.proto_store.get_user(name.lower())
         if f is not None:
             self.error(proto, command, 'Handle already registered', False,
-                       {'handle' : [name]})
+                       {'handle': [name]})
             return False
 
         if len(gecos) > parser.MAXTARGET:
             self.error(proto, command, 'GECOS is too long', False,
-                       {'gecos' : [gecos]})
+                       {'gecos': [gecos]})
             return False
 
         if password is None or len(password) < 5:
@@ -207,7 +208,7 @@ class DCPServer:
             return
 
         kval = {
-            'text' : [self.motd],
+            'text': [self.motd],
         }
         proto.send_multipart(self, user, 'motd', ['text'], kval)
 
@@ -217,7 +218,8 @@ class DCPServer:
             self.error(proto, 'ping', 'Ping timeout')
             return
 
-        proto.send(self, proto, 'ping', {'time' : [str(round(time.time()))]})
+        t = str(round(time.time()))
+        proto.send(self, proto, 'ping', {'time': [t]})
 
         user.timeout = True
 
@@ -275,4 +277,3 @@ class DCPServer:
             acl_set = UserACLSet(self, target, acl_data)
 
             return User(self, target, u_data['gecos'], acl_set)
-

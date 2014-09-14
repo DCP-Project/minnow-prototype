@@ -4,6 +4,7 @@ import crypt
 from server.property import UserProperty
 from server.acl import UserACLSet
 
+
 class User:
     def __init__(self, server, name, gecos, acl=None, property=None,
                  roster=None, options=[]):
@@ -11,9 +12,9 @@ class User:
         self.name = name
         self._gecos = gecos
         self.acl = acl
-        self.property = property # TODO
-        self.roster = roster # TODO
-        self.options = options # TODO
+        self.property = property  # TODO
+        self.roster = roster  # TODO
+        self.options = options  # TODO
 
         self.sessions = set()
         self.groups = set()
@@ -59,7 +60,7 @@ class User:
             proto.send_multipart(source, target, command, keys, kval)
 
     def message(self, source, message):
-        self.send(source, self, 'message', {'body' : message})
+        self.send(source, self, 'message', {'body': message})
 
     def __hash__(self):
         return hash((hash(self.name), hash(self.gecos)))

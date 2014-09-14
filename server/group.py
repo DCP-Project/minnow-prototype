@@ -7,6 +7,7 @@ from server.acl import GroupACLSet
 from server.property import GroupProperty
 from server.errors import *
 
+
 class Group:
     """ Like an IRC channel """
     def __init__(self, server, name, topic=None, acl=None, property=None,
@@ -60,17 +61,17 @@ class Group:
 
         # Burst the channel info
         kval = {
-            'time' : [str(self.ts)],
-            'topic' : [self.topic if self.topic else ''],
+            'time': [str(self.ts)],
+            'topic': [self.topic if self.topic else ''],
         }
         user.send(self, user, 'group-info', kval)
 
         kval = {
-            'users' : []
+            'users': []
         }
 
         # TODO use multipart
-        d_tlen = tlen = 500 # Probably too much... but good enough for now.
+        d_tlen = tlen = 500  # Probably too much... but good enough for now.
         for user2 in self.users:
             tlen += len(user2.name) + 1
             if tlen >= MAXFRAME:
@@ -87,7 +88,7 @@ class Group:
 
         # Burst ACL's
         kval = {
-            'acl' : [],
+            'acl': [],
         }
         user.send(self, user, 'acl-list', None)
 

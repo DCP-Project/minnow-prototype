@@ -3,8 +3,9 @@ import enum
 from time import time
 from collections import defaultdict
 
+
 class ACL:
-    __slots__= ['setter', 'reason', 'time']
+    __slots__ = ['setter', 'reason', 'time']
 
     def __init__(self, setter=None, reason=None, time_=None):
         self.setter = setter
@@ -16,41 +17,41 @@ class ACL:
 
 
 class UserACLValues(enum.Enum):
-    user_auspex     = 'user:auspex'
-    user_register   = 'user:register'
-    user_revoke     = 'user:revoke'
-    user_grant      = 'user:grant'
+    user_auspex = 'user:auspex'
+    user_register = 'user:register'
+    user_revoke = 'user:revoke'
+    user_grant = 'user:grant'
     user_disconnect = 'user:disconnect'
-    user_ban        = 'user:ban'
+    user_ban = 'user:ban'
 
-    group_auspex    = 'group:auspex'
-    group_register  = 'group:register'
-    group_override  = 'group:override'
-    group_revoke    = 'group:revoke'
-    group_ban       = 'group:ban'
+    group_auspex = 'group:auspex'
+    group_register = 'group:register'
+    group_override = 'group:override'
+    group_revoke = 'group:revoke'
+    group_ban = 'group:ban'
 
     # Prohibition ACL's
-    ban_banned      = 'ban:banned'
+    ban_banned = 'ban:banned'
     ban_usermessage = 'ban:usermessage'
 
 
 class GroupACLValues(enum.Enum):
-    user_kick      = 'user:kick'
-    user_ban       = 'user:ban'
-    user_mute      = 'user:mute'
-    user_voice     = 'user:voice'
+    user_kick = 'user:kick'
+    user_ban = 'user:ban'
+    user_mute = 'user:mute'
+    user_voice = 'user:voice'
 
-    user_owner     = 'user:owner'
-    user_admin     = 'user:admin'
-    user_op        = 'user:op'
+    user_owner = 'user:owner'
+    user_admin = 'user:admin'
+    user_op = 'user:op'
 
-    group_topic    = 'group:topic'
+    group_topic = 'group:topic'
     group_property = 'group:property'
-    group_clear    = 'group:clear'
+    group_clear = 'group:clear'
 
     # Prohibition ACL's
-    ban_banned     = 'ban:banned'
-    ban_mute       = 'ban:mute'
+    ban_banned = 'ban:banned'
+    ban_mute = 'ban:mute'
 
 
 class UserACLSet:
@@ -112,6 +113,7 @@ class UserACLSet:
         del self.acl_map[acl]
 
         asyncio.async(self.server.proto_store.del_user_acl(acl, self.user))
+
 
 class GroupACLSet:
     __slots__ = ['server', 'group', 'acl_map']
@@ -181,4 +183,3 @@ class GroupACLSet:
 
     def delete_all(self, user):
         self.acl_map.pop(user, None)
-
