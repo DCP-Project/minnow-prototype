@@ -61,7 +61,7 @@ class Frame(BaseFrame):
 
         llen = len(text) - 1
         frame_iter = islice(text, 3, llen)
-        llen -= 3 
+        llen -= 3
 
         try:
             source = cls.get_next(frame_iter)

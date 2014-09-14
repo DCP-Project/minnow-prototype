@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import asyncio, ssl
+import asyncio
+import ssl
 import logging
 
 from functools import partial
@@ -42,5 +43,6 @@ try:
 except KeyboardInterrupt:
     logger.info('Exiting from ctrl-c')
 finally:
-    for server in done: server.cancel()
+    for server in done:
+        server.cancel()
     loop.close()

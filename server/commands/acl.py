@@ -33,7 +33,7 @@ class ACLBase:
                                                    acl))
         else:
             ret = (yield from self.has_grant_user(server, user, utarget, acl))
-        
+
         return ret
 
     def registered(self, server, user, proto, line):

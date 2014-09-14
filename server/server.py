@@ -1,4 +1,4 @@
-# Copyright © 2014 
+# Copyright © 2014
 import enum
 import time
 import asyncio
