@@ -111,10 +111,8 @@ class DCPServer:
                 self.error(proto, line.command, 'Internal server error (this ' \
                         'isn\'t your fault)')
 
-    def user_enter(self, proto, name, options):
-        user = (yield from self.get_any_target(name))
-        assert user is not None
-        proto.user = self.online_users[name] = user
+    def user_enter(self, proto, user, options):
+        proto.user = self.online_users[user.name.lower()] = user
         user.sessions.add(proto)
 
         user.options = options
@@ -200,7 +198,8 @@ class DCPServer:
         # Clear the user cache
         self.get_any_target.cache_clear()
 
-        return True
+        # Poop out a new user object
+        return User(self, user, gecos)
 
     def user_motd(self, user, proto):
         if not self.motd:

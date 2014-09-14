@@ -23,9 +23,9 @@ class Register(Command):
         gecos = line.kval.get('gecos', [name])[0]
         password = line.kval.get('password', [None])[0]
 
-        ret = (yield from server.user_register(proto, name, gecos, password,
-                                               line.command))
-        if not ret:
+        user = (yield from server.user_register(proto, name, gecos, password,
+                                                line.command))
+        if user is None:
             return
 
         kval = {
@@ -37,7 +37,7 @@ class Register(Command):
 
         options = line.kval.get('options', [])
 
-        yield from server.user_enter(proto, name, options)
+        yield from server.user_enter(proto, user, options)
 
 
 class FRegister(Command):

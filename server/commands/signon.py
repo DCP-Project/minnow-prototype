@@ -27,10 +27,15 @@ class Signon(Command):
             return
 
         # Retrieve the user info
-        uinfo = (yield from server.proto_store.get_user(name.lower()))
-        if uinfo is None:
+        user = server.get_any_target(name)
+        if user is None:
             server.error(proto, line.command, 'You are not registered with ' \
                        'the server', False, {'handle' : [name]})
+            return
+        elif user.proto:
+            # TODO - burst all state to the user
+            server.error(proto, line.command, 'No multiple users at the '\
+                       'moment', True, {'handle' : [name]})
             return
 
         if 'password' not in line.kval:
@@ -43,14 +48,8 @@ class Signon(Command):
             server.error(proto, line.command, 'Invalid password')
             return
 
-        if name.lower() in server.online_users:
-            # TODO - burst all state to the user
-            server.error(proto, line.command, 'No multiple users at the '\
-                       'moment', True, {'handle' : [name]})
-            return
-
         options = line.kval.get('options', [])
 
-        yield from server.user_enter(proto, name, options)
+        yield from server.user_enter(proto, user, options)
 
 register['signon'] = Signon()
