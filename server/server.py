@@ -16,7 +16,7 @@ import server.parser as parser
 from server.acl import UserACLSet, GroupACLSet
 from server.user import User
 from server.group import Group
-from server.storage import AsyncStorage, ProtocolStorage
+from server.storage.asyncstorage import AsyncStorage
 from server.errors import *
 from settings import *
 
@@ -34,7 +34,7 @@ class DCPServer:
         self.online_users = dict()
         self.groups = dict()
 
-        self.proto_store = AsyncStorage(ProtocolStorage, 'store.db')
+        self.proto_store = AsyncStorage(store_backend, store_backend_args)
 
         self.line_queue = asyncio.Queue()
 

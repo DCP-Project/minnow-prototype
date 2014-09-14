@@ -97,3 +97,14 @@ class ACLExistsError(ACLError):
 class ACLDoesNotExistError(ACLError):
     "ACL does not exist"
     pass
+
+
+class StorageError(DCPError):
+    "Storage backend related error"
+    pass
+
+
+class StorageBackendNotFoundError(StorageError):
+    "Could not find given storage backend"
+    pass
+
