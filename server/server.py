@@ -10,8 +10,8 @@ import crypt
 import logging
 import traceback
 
-import server.command
-import server.parser
+import server.command as command
+import server.parser as parser
 
 from server.acl import UserACLSet, GroupACLSet
 from server.user import User
@@ -76,7 +76,7 @@ class DCPServer:
         # Determine which function to use
         if hasattr(proto, 'user'):
             # User found
-            if user is None:
+            if proto.user is None:
                 function = instance.unregistered
                 args = (self, proto, line)
             else:
