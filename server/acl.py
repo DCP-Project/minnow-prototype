@@ -62,7 +62,7 @@ class UserACLSet:
         # NOTE - we use acl_data here separate instead of getting it ourselves
         # because __init__ being a coroutine is probably dodgy.
         self.server = server
-        self.user = user
+        self.user = user.lower()
         self.acl_map = dict()
 
         if not acl_data:
@@ -102,8 +102,8 @@ class UserACLSet:
     def add(self, acl, setter=None, reason=None):
         self._add_nocommit(acl, setter, reason)
 
-        asyncio.async(self.server.proto_store.create_user_acl(self.user,
-                      acl, reason))
+        asyncio.async(self.server.proto_store.create_user_acl(self.user, acl,
+                                                              reason))
 
     def delete(self, acl):
         if acl not in self.acl_map:

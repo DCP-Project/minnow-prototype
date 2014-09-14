@@ -228,7 +228,7 @@ class ProtocolStorage:
     def create_user(self, name, gecos, password):
         self.log.critical('creating user')
         c = self.database.modify(s_create_user,
-                             (name, gecos, password))
+                                 (name, gecos, password))
         self.log.critical('executed with', name, gecos, password)
         return c
 

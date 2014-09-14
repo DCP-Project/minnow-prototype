@@ -30,7 +30,7 @@ class Group:
         if self.ts is None:
             self.ts = round(time.time())
 
-        if not self.name.startswith('#'):
+        if not self.name[0] == '#':
             self.name = '#' + self.name
 
     @property
@@ -41,7 +41,7 @@ class Group:
     def topic(self, value):
         self._topic = value
 
-        asyncio.async(self.server.proto_store.set_group(self.name,
+        asyncio.async(self.server.proto_store.set_group(self.name.lower(),
                       topic=value))
 
     def member_add(self, user, reason=None):
@@ -69,6 +69,7 @@ class Group:
             'users' : []
         }
 
+        # TODO use multipart
         d_tlen = tlen = 500 # Probably too much... but good enough for now.
         for user2 in self.users:
             tlen += len(user2.name) + 1

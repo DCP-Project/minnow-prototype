@@ -237,7 +237,7 @@ class DCPServer:
             return
 
         target = target.lower()
-        if target.startswith('#') and target in self.groups:
+        if target[0] == '#' and target in self.groups:
             return self.groups[target]
         elif target in self.online_users:
             return self.online_users[target]
