@@ -11,19 +11,25 @@ logger = logging.getLogger(__name__)
 class Command:
     def unregistered(self, server, proto, line):
         "Execute this action for unregistered users"
-        raise CommandNotImplementedError
+        if id(Command.registered) != id(self.registered):
+            raise RegisteredOnlyError('This command is for registered ' \
+                                      'users only')
+        raise CommandNotImplementedError('Command not found')
 
     def registered(self, server, user, proto, line):
         "Execute this action for registered users"
-        raise CommandNotImplementedError
+        if id(Command.unregistered) != id(self.unregistered):
+            raise UnregisteredOnlyError('This command is for unregistered ' \
+                                        'users only')
+        raise CommandNotImplementedError('Command not found')
 
     def sts(self, server, remote, proto, line):
         "Execute this action for server-to-server"
-        raise CommandNotImplementedError
+        raise CommandNotImplementedError('Command not found')
 
     def ipc(self, server, proto, line):
         "Execute an action for IPC commands"
-        raise CommandNotImplementedError
+        raise CommandNotImplementedError('Command not found')
 
 
 register = dict()
