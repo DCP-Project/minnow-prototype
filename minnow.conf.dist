@@ -1,0 +1,11 @@
+[server]
+enable_json = False
+
+[storage]
+backend = sqlite
+
+[logging]
+level = debug
+
+[performance]
+max_cache = 4096

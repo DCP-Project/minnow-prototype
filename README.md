@@ -14,7 +14,8 @@ client, [Gilligan](https://github.com/DCP-Project/gilligan-prototype).
 * All clients must speak TLS 1.2 atm (this raises the bar on purpose)
 
 ## Configuration
-All configuration is done in the `config.py` file. Just edit it to taste.
+Minnow searches /etc/minnow and the current directory for `minnow.conf`.
+Use the provided `minnow.conf.dist` as a starting point.
 
 The SSL certificate is stored in `cert.pem`. At the moment, this is
 hard-coded.

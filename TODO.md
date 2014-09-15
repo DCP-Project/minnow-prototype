@@ -17,7 +17,7 @@ The order of these doesn't matter.
 
 ## Configuration/settings
 - [ ] IPC utils over the Unix socket
-- [ ] A **real** config system that isn't a Python file
+- [X] A **real** config system that isn't a Python file
 
 ## Storage
 - [ ] PostgreSQL storage backend

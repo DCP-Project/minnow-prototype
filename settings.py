@@ -1,40 +1,70 @@
-# Config file for minnow
-# (yes yes I know a python script isn't a config file)
+""" Config system for minnow """
 
+from configparser import ConfigParser
 import logging
+import os
+import socket
+import sys
 
-### Server configuration
+def _determine_prefix():
+    """Determine the prefix directory for configuration files."""
+    prefix = sys.prefix
 
-# Server name
-servname = 'elizabethmyers.me.uk'
+    if prefix == '/usr':
+        prefix = ''
 
-# Listen on this IP/port pair
-listen = ('0.0.0.0', 7266)
-listen_json = ('0.0.0.0', 7267)
+    return prefix
 
-# Server password
-servpass = None
+class ImproperConfigurationError(Exception):
+    """Raised when a (very) invalid configuration is provided."""
+    pass
 
-# Allow registrations
-allow_register = True
+class MinnowSettings(object):
+    """Settings object, basically a ConfigParser with our own defaults."""
+    def __init__(self, path):
+        """Initialise the settings object, loading settings from the file at
+        'path'."""
+        self._config = ConfigParser()
+        self._config.read(path)
 
-# Path to Unix control socket
-unix_path = 'data/control'
+        if not self._config.has_section('server'):
+            raise ImproperConfigurationError("No server options set!")
 
-### Storage backend
+        # server settings
+        self.servname = self._config['server'].get('servname', socket.getfqdn())
 
-# Import your required backend here and set these variables
-from server.storage import sqlite
-store_backend = sqlite.backend.ProtocolStorage
-store_backend_args = ('data/store.db',)
+        ip = self._config['server'].get('listen_ip', '0.0.0.0')
+        port = int(self._config['server'].get('listen_port', '7266'))
+        self.listen = (ip, port)
 
-### Debug options
+        want_json = self._config['server'].getboolean('enable_json', True)
+        if want_json:
+            jip = self._config['server'].get('json_listen_ip', '0.0.0.0')
+            jport = int(self._config['server'].get('json_listen_port', '7267'))
+            self.listen_json = (jip, jport)
+        else:
+            self.listen_json = ('127.0.0.1', 7267)  # XXX TODO handle better
 
-# Debug level (set to debug, please)
-log_level = logging.DEBUG
+        self.servpass = self._config['server'].get('password', None)
+        self.allow_register = self._config['server'].getboolean('enable_registrations', True)
+        self.unix_path = self._config['server'].get('ipc_socket_path', 'data/control')
 
-### Performance options
+        # storage settings
+        provider_name = self._config['storage'].get('backend', 'sqlite')
+        module = __import__('server.storage', globals(), locals(), [provider_name])
+        self.store_backend = getattr(module, provider_name).backend.ProtocolStorage
+        self.store_backend_args = ('data/store.db',)  # XXX TODO bad
 
-# Maximum users to keep in the offline cache
-# (Set to None for an unlimited amount)
-max_cache = 1024
+        # debug settings
+        level = self._config['logging'].get('level', 'DEBUG').upper()
+        self.log_level = getattr(logging, level)
+
+        # performance settings
+        cache = self._config['performance'].get('max_cache', '1024')
+        if cache.lower()[:2] == 'no':
+            self.max_cache = None
+        else:
+            self.max_cache = int(cache)
+
+cfg_path = os.path.join(_determine_prefix(), '/etc/minnow/minnow.conf')
+sys.modules[__name__] = MinnowSettings(cfg_path)
