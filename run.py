@@ -8,6 +8,7 @@
 import asyncio
 import ssl
 import logging
+import os
 
 from functools import partial
 
@@ -17,6 +18,8 @@ from settings import *
 
 logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
+
+os.unlink(unix_path)
 
 # Set up SSL context
 ctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
