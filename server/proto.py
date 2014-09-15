@@ -95,8 +95,8 @@ class DCPBaseProto(asyncio.Protocol):
                 frame = self.frame.parse(data)
             except ParserError as e:
                 logger.exception('Parser failure')
-                self.error('*', 'Parser failure', {'cause': [str(e)]}, False)
-                continue
+                self.error('*', 'Parser failure', {'cause': [str(e)]})
+                break
 
             asyncio.async(self.server.line_queue.put((self, frame)))
 
@@ -123,6 +123,7 @@ class DCPBaseProto(asyncio.Protocol):
             kval = dict()
 
         frame = self.frame(source, target, command, kval)
+        print('Sending frame', bytes(frame))
         self.transport.write(bytes(frame))
 
     def send_multipart(self, source, target, command, keys=list(), kval=None,
@@ -262,7 +263,7 @@ class DCPBaseProto(asyncio.Protocol):
         if not source:
             source = self.server
 
-        target = getattr(self, 'user', getattr(self, 'server', '*'))
+        target = getattr(self, 'user', getattr(self, 'remote', '*'))
         self.send(source, target, 'error', kval)
 
         if fatal:
