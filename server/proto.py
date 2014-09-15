@@ -262,6 +262,7 @@ class DCPBaseProto(asyncio.Protocol):
         if not source:
             source = self.server
 
+        target = getattr(self, 'user', getattr(self, 'server', '*'))
         self.send(source, self.user, 'error', kval)
 
         if fatal:
