@@ -16,6 +16,9 @@ from server.server import DCPServer
 from server.proto import DCPProto, DCPJSONProto, DCPUnixProto
 from settings import *
 
+# Set a restrictive umask
+os.umask(0o077)
+
 logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
 
