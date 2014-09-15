@@ -6,6 +6,7 @@ import os
 import socket
 import sys
 
+
 def _determine_prefix():
     """Determine the prefix directory for configuration files."""
     prefix = sys.prefix
@@ -15,9 +16,11 @@ def _determine_prefix():
 
     return prefix
 
+
 class ImproperConfigurationError(Exception):
     """Raised when a (very) invalid configuration is provided."""
     pass
+
 
 class MinnowSettings(object):
     """Settings object, basically a ConfigParser with our own defaults."""
@@ -47,13 +50,16 @@ class MinnowSettings(object):
 
         self.servpass = self._config['server'].get('password', None)
         self.allow_register = self._config['server'].getboolean('enable_registrations', True)
-        self.unix_path = self._config['server'].get('ipc_socket_path', 'data/control')
+        self.unix_path = self._config['server'].get('ipc_socket_path',
+                                                    'data/control')
 
-        self.cert_file_path = self._config['server'].get('cert_file', 'cert.pem')
+        self.cert_file_path = self._config['server'].get('cert_file',
+                                                         'cert.pem')
 
         # storage settings
         provider_name = self._config['storage'].get('backend', 'sqlite')
-        module = __import__('server.storage', globals(), locals(), [provider_name])
+        module = __import__('server.storage', globals(), locals(),
+                            [provider_name])
         self.store_backend = getattr(module, provider_name).backend.ProtocolStorage
         self.store_backend_args = ('data/store.db',)  # XXX TODO bad
 
