@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# coding: utf-8
 # Copyright © 2014 Elizabeth Myers, Andrew Wilcox. All rights reserved.
 # This software is free and open source. You can redistribute and/or modify it
 # under the terms of the Do What The Fuck You Want To Public License, Version
