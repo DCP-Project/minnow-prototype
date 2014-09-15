@@ -263,7 +263,7 @@ class DCPBaseProto(asyncio.Protocol):
             source = self.server
 
         target = getattr(self, 'user', getattr(self, 'server', '*'))
-        self.send(source, self.user, 'error', kval)
+        self.send(source, target, 'error', kval)
 
         if fatal:
             self.transport.close()

@@ -21,7 +21,6 @@ allow_register = True
 # Path to Unix control socket
 unix_path = 'data/control'
 
-
 ### Storage backend
 
 # Import your required backend here and set these variables
