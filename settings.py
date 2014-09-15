@@ -69,4 +69,4 @@ class MinnowSettings(object):
             self.max_cache = int(cache)
 
 cfg_path = os.path.join(_determine_prefix(), '/etc/minnow/minnow.conf')
-sys.modules[__name__] = MinnowSettings([cfg_path, 'minnow.conf'])
+sys.modules[__name__] = MinnowSettings(['minnow.conf', cfg_path])
