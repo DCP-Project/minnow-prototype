@@ -127,8 +127,7 @@ class Frame(BaseFrame):
         llen = 3 + len(source) + 1 + len(target) + 1 + len(command) + 1 + 2
 
         if len(kval) > 0:
-            llen += sum(sum((len(k)+len(v2)+2) for v2 in v) for k, v in
-                        kval.items()) - 1
+            llen += self.len_kv(kval) - 1
 
         return llen
 
@@ -199,25 +198,32 @@ class JSONFrame(BaseFrame):
         return frame
 
     @staticmethod
+    def len_kv(kval):
+        if not kval:
+            return 0
+
+        l = 0
+        for k, v in kval.items():
+            # Each key: val pair introduces at least 6 bytes overhead
+            l += 6 + len(k)
+
+            # Each value adds at least 3 chars of overhead per item
+            for v2 in v:
+                l += 3 + len(v2)
+
+            # Adjust for trailing comma
+            l -= 1
+
+        # Trailing comma
+        l -= 1
+        return l
+
+    @staticmethod
     def _generic_len(source, target, command, kval):
         # 44 is the base length of a JSON frame minus keys/values
         # (however it does include quotes)
         baselen = 44 + len(source) + len(target) + len(command)
-
-        if kval:
-            for k, v in kval.items():
-                # Each key: val introduces a minimum of 6 bytes overhead
-                baselen += 6 + len(k)
-
-                # Each value adds at least 3 chars of overhead per item
-                for v2 in v:
-                    baselen += 3 + len(v2)
-
-                # Adjust for trailing comma
-                baselen -= 1
-
-            # Exclude trailing comma
-            baselen -= 1
+        baselen += self.len_kv(kval)
 
         return baselen
 
