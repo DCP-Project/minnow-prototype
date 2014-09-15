@@ -4,14 +4,14 @@
 # under the terms of the Do What The Fuck You Want To Public License, Version
 # 2, as published by Sam Hocevar. See the LICENSE file for more details.
 
-#!/usr/bin/env python3
-
 import asyncio
 import socket
 import random
 
 import logging
 import traceback
+
+from collections import defaultdict
 
 import server.parser as parser
 
@@ -125,70 +125,128 @@ class DCPBaseProto(asyncio.Protocol):
         frame = self.frame(source, target, command, kval)
         self.transport.write(bytes(frame))
 
-    def send_multipart(self, source, target, command, keys=[], kval=None):
+    def send_multipart(self, source, target, command, keys=list(), kval=None,
+                       use_size=False):
         if kval is None:
             # No point
-            self.send(source, target, command, kval)
+            self.send(source, target, command, {})
             return
 
-        exempt_keys = ('multipart', 'part', 'total')
-        if not keys:
-            keys = {k for k in kval.keys() if k not in exempt_keys}
-
-        if len(keys) > 1:
-            keys.extend(exempt_keys)
-
-            # Copy all unrelated keys
-            kval2 = {k: v for k, v in kval.items() if k not in keys}
-            for key in keys:
-                # Temporarily copy
-                kval2[key] = kval[key]
-
-                # Send off
-                self.send_multipart(source, target, command, [key], kval2)
-
-                # Delete after use
-                del kval2[key]
-
-            return
-        else:
-            key = keys[0]
-
-        kval = kval.copy()
         sname = source.name
         tname = target.name
 
-        # Strip the list
-        data = ''.join(kval[key])
-        datalen = len(data)
+        if any(k in ('multipart', 'transfer-size') for k in keys):
+            raise MultipartKeyError('Bad multipart keys')
+        elif not keys:
+            keys = [k for k in kval.keys()]
 
-        kval['multipart'] = [key]
+        len_k = len(keys)
 
-        # This is only a rough guess, to get the number of digits
-        # required to store the total.
-        kval['total'] = kval['size'] = [str(datalen)]
+        # Now we get two dictionaries
+        # kval_first is the dictionary containing all keys we send on the
+        # first frame
+        # kval_k is the dictionary containing all the multipart keys
+        kval_first = dict()
+        kval_k = dict()
+        for k, v in kval.items():
+            if k in keys:
+                kval_k[k] = v
+            else:
+                kval_first[k] = v
 
-        fit = self.frame._generic_len(sname, tname, command, kval) - 1
-        if fit >= datalen:
-            # No point in using multipart
-            del kval['multipart']
-            del kval['total']
-            del kval['size']
-            self.send(source, target, command, kval)
-            return
-        else:
-            # Fit our data
-            plen = datalen + fit  # NOTE: actually subtraction
-            split = [data[0+i:plen+i] for i in range(0, datalen, plen)]
-            kval['total'] = [str(len(split))]
-            for part, data in enumerate(split):
-                kval[key] = [data]
-                self.send(source, target, command, kval)
+        if use_size:
+            kval_first['multipart'] = keys
 
-                # Not needed anymore
-                # XXX recompute optimal size
-                del kval['total']
-                del kval['size']
+            # Length of the pieces
+            # We will send each multipart key at once, til its all sent
+            # If it should/must be sent separate, tough (for now).
+            p_len = parser.MAXFRAME // len_k
+
+            # Split up the keys
+            # kval_s - scratch space (coalesced keys)
+            kval_s = {k: ''.join(v) for v in kval_k.items()}
+            kval_k = defaultdict(list)  # Erase for now
+            while len_k > 0:
+                kval_s_del = []
+                for k, v in kval_s.items():
+                    v_len = len(v)
+
+                    split_len = (p_len if v_len >= p_len else v_len)
+                    s = v[:split_len]
+
+                    if s:
+                        kval_k[k].append(s)
+
+                    if v_len > split_len:
+                        # Store remaining string if we have it
+                        kval_s[k] = v[split_len:]
+                    else:
+                        # Exhausted this key, so remove it
+                        kval_s_del.append(k)
+
+                        len_k -= 1
+                        if len_k > 0 and not s:
+                            p_len = parser.MAXFRAME // len_k
+                        else:
+                            # No more pieces
+                            break
+
+                for k in kval_s_del:
+                    del kval_s[k]
+
+            # Get the transfer size
+            kval_first['transfer-size'] = str(sum(sum(len(v2) for v2 in v) for
+                                                  v in kval_k.values()))
+
+        self.send(source, target, command, kval_first)
+
+        # The goal of the below is to pack as much data as possible into a
+        # single frame.
+
+        stub_k = {k: ['*'] for k in keys}
+
+        # Get the length that will fit
+        fit = self.frame._generic_len(sname, tname, command, stub_k)
+        fit -= len_k  # Minus stub value lengths
+
+        # It won't fit. Punt.
+        if fit >= parser.MAXFRAME:
+            raise MultipartOverflowError()
+
+        kval_cur = defaultdict(list)
+        kval_next = defaultdict(list)
+        cur_len = 0
+        len_kv = self.frame.len_kv
+        while kval_k:
+            del_list = []
+            for k, v in kval_k.items():
+                kval_next[k].append(v[0])
+                del v[0]
+                if not len(v):
+                    del_list.append(k)
+
+            if (fit + len_kv(kval_cur) + len_kv(kval_next)) >= parser.MAXFRAME:
+                # Send what we have, replace kval_cur
+                self.send(source, target, command, kval_cur)
+
+                print(kval_cur)
+
+                kval_cur.clear()
+
+            for k, v in kval_next.items():
+                kval_cur[k].extend(v)
+
+            kval_next.clear()
+
+            for k in del_list:
+                del kval_k[k]
+
+        if kval_cur:
+            # Send whatever we have left
+            self.send(source, target, command, kval_cur)
+
+        # End of stream sentinel
+        self.send(source, target, command, {'multipart': ['*']})
 
     def error(self, command, reason, fatal=True, extargs=None, source=None):
         if not self.transport:
