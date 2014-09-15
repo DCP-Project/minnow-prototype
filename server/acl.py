@@ -107,12 +107,24 @@ class UserACLSet:
         self.acl_map[acl] = ACL(setter, reason, time_)
 
     def add(self, acl, setter=None, reason=None):
+        if not isinstance(acl, str):
+            for a in acl:
+                self.add(a, setter, reason)
+
+            return
+
         self._add_nocommit(acl, setter, reason)
 
         asyncio.async(self.server.proto_store.create_user_acl(self.user, acl,
                                                               reason))
 
     def delete(self, acl):
+        if not isinstance(acl, str):
+            for a in acl:
+                self.delete(a)
+
+            return
+
         if acl not in self.acl_map:
             raise ACLDoesNotExistError('ACL does not exist')
 
@@ -172,6 +184,12 @@ class GroupACLSet:
 
     def add(self, user, acl, setter=None, reason=None):
         user = getattr(user, 'name', user)
+        if not isinstance(acl, str):
+            for a in acl:
+                self.add(user, a, setter, reason)
+
+            return
+
         self._add_nocommit(user, acl, setter, reason)
 
         asyncio.async(self.server.proto_store.create_group_acl(self.group,
@@ -179,6 +197,12 @@ class GroupACLSet:
 
     def delete(self, user, acl):
         user = getattr(user, 'name', user)
+        if not isinstance(acl, str):
+            for a in acl:
+                self.delete(user, a)
+
+            return
+
         if acl not in self.acl_map[user]:
             raise ACLDoesNotExistError('ACL does not exist')
 
