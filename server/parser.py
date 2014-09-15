@@ -127,7 +127,7 @@ class Frame(BaseFrame):
         llen = 3 + len(source) + 1 + len(target) + 1 + len(command) + 1 + 2
 
         if len(kval) > 0:
-            llen += self.len_kv(kval) - 1
+            llen += Frame.len_kv(kval) - 1
 
         return llen
 
@@ -223,7 +223,7 @@ class JSONFrame(BaseFrame):
         # 44 is the base length of a JSON frame minus keys/values
         # (however it does include quotes)
         baselen = 44 + len(source) + len(target) + len(command)
-        baselen += self.len_kv(kval)
+        baselen += JSONFrame.len_kv(kval)
 
         return baselen
 
