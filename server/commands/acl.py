@@ -127,7 +127,7 @@ class ACLSet(ACLBase, Command):
             utarget.send(server, user, line.command, kwds)
 
 
-class ACLDel(Command, ACLBase):
+class ACLDel(ACLBase, Command):
     @asyncio.coroutine
     def registered(self, server, user, proto, line):
         gtarget, utarget = super().registered(server, user, line)
@@ -165,7 +165,78 @@ class ACLDel(Command, ACLBase):
         elif utarget.proto:
             utarget.send(server, user, line.command, kwds)
 
+        user.send(server, user, line.command, kwds)
+
+class ACLList(ACLBase, Command):
+    @asyncio.coroutine
+    def registered(self, server, user, proto, line):
+        gtarget, utarget = super().registered(server, user, line)
+        if (gtarget, utarget) == (None, None):
+            return
+
+        if gtarget:
+            kwds = {'target': [gtarget.name], 'user': [utarget.name]}
+        else:
+            kwds = {'target': [utarget.name]}
+
+        reason = line.kval.get('reason')
+        if reason:
+            kwds['reason'] = [reason]
+
+        if gtarget:
+            # TODO property value for group:grant only ACL viewing
+            data = (yield from server.proto_store.get_group_acl(
+                    gtarget.name.lower()))
+        else:
+            # ACL's should only be viewable by those with grant priv for users
+            # TODO is this correct?
+            ret, msg = (yield from self.has_grant(server, user, gtarget,
+                                                  utarget, acl))
+            if not ret:
+                server.error(user, line.command, msg, False, kwds)
+                return
+
+            data = (yield from server.proto_store.get_user_acl(
+                    utarget.name.lower()))
+
+        if not data:
+            user.send(server, user, line.command, kwds)
+            return
+
+        acl_entry = []
+        acl_time = []
+        acl_setter = []
+
+        # Split out the ACL info
+        for entry in data:
+            acl = entry['acl']
+            time = entry['timestamp']
+            setter = entry['setter']
+
+            if not acl:
+                # TODO warning
+                continue
+
+            if time is None:
+                time = 0
+
+            if setter is None:
+                setter = '*'
+
+            acl_entry.append(acl)
+            acl_time.append(time)
+            acl_setter.append(setter)
+
+        kwds.update({
+            'acl': acl,
+            'acl-time': acl_time,
+            'acl-setter': acl_setter,
+        })
+        user.send_multipart(server, user, line.command,
+                            ('acl', 'acl-time', 'acl-setter'), kwds)
+
 register.update({
     'acl-set': ACLSet(),
     'acl-del': ACLDel(),
+    'acl-list': ACLList()
 })
