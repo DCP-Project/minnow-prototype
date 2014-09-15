@@ -48,3 +48,6 @@ store.db
 
 # Ignore the certificate
 cert.pem
+
+# Ignore conf file
+minnow.conf
