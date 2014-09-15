@@ -151,6 +151,7 @@ class JSONFrame(BaseFrame):
             raise ParserSizeError('Frame is too large')
 
         text = text.decode('utf-8', 'replace')
+        text = text[:-1]
 
         try:
             load = json.loads(text)
