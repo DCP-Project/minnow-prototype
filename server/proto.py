@@ -108,7 +108,7 @@ class DCPBaseProto(asyncio.Protocol):
             # XXX for now # is implicit with Group.
             # this is subject to change
             return target.name
-        elif target is None:
+        elif target is None or target == '*':
             return '*'
         else:
             return '&' + getattr(target, 'name', target)
