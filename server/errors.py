@@ -39,7 +39,11 @@ class MultipartError(ParserError):
     pass
 
 
-class MultipartOverflowError(ParserError):
+class MultipartKeyError(MultipartError):
+    "A bad multipart key was found"
+    pass
+
+class MultipartOverflowError(MultipartError):
     "A multipart message overflowed"
     pass
 
