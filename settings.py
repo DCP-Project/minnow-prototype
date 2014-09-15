@@ -49,6 +49,8 @@ class MinnowSettings(object):
         self.allow_register = self._config['server'].getboolean('enable_registrations', True)
         self.unix_path = self._config['server'].get('ipc_socket_path', 'data/control')
 
+        self.cert_file_path = self._config['server'].get('cert_file', 'cert.pem')
+
         # storage settings
         provider_name = self._config['storage'].get('backend', 'sqlite')
         module = __import__('server.storage', globals(), locals(), [provider_name])

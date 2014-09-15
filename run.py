@@ -27,7 +27,7 @@ except OSError:
 # Set up SSL context
 ctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 ctx.load_default_certs(ssl.Purpose.CLIENT_AUTH)
-ctx.load_cert_chain('cert.pem')
+ctx.load_cert_chain(cert_file_path)
 
 # SSL options
 ctx.options &= ~ssl.OP_ALL

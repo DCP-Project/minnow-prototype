@@ -17,9 +17,6 @@ client, [Gilligan](https://github.com/DCP-Project/gilligan-prototype).
 Minnow searches /etc/minnow and the current directory for `minnow.conf`.
 Use the provided `minnow.conf.dist` as a starting point.
 
-The SSL certificate is stored in `cert.pem`. At the moment, this is
-hard-coded.
-
 The motd is stored in `motd.txt`. All lines will be truncated at 200 characters
 for sanity reasons.
 
