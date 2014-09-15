@@ -46,6 +46,18 @@ class Register(Command):
 
         yield from server.user_enter(proto, user, options)
 
+    @asyncio.coroutine
+    def ipc(self, server, proto, line):
+        name = line.kval.get('handle', [None])[0]
+        gecos = line.kval.get('gecos', [name])[0]
+        password = line.kval.get('password', [None])[0]
+
+        user = (yield from server.user_register(proto, name, gecos, password,
+                                                line.command))
+        if user is None:
+            return
+
+        proto.send('*', '*', line.command, {'message': 'ok'})
 
 class FRegister(Command):
     @asyncio.coroutine
