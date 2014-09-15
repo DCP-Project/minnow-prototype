@@ -205,7 +205,7 @@ class DCPServer:
         self.get_any_target.cache_clear()
 
         # Poop out a new user object
-        return User(self, user, gecos)
+        return User(self, name, gecos)
 
     def user_motd(self, user, proto):
         if not self.motd:
