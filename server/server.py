@@ -42,13 +42,8 @@ class DCPServer:
 
         self.proto_store = AsyncStorage(store_backend, store_backend_args)
 
-        self.line_queue = asyncio.Queue()
-
         self.motd = None
         self.motd_load()
-
-        # Start this loop
-        asyncio.async(self.process())
 
     def motd_load(self):
         try:
@@ -101,21 +96,6 @@ class DCPServer:
         except CommandNotImplementedError as e:
             if proto:
                 self.error(proto, line.command, str(e))
-
-    @asyncio.coroutine
-    def process(self):
-        while True:
-            proto, line = (yield from self.line_queue.get())
-            try:
-                yield from self._call_func(proto, line)
-            except (UserError, GroupError) as e:
-                logger.warn('Possible bug hit! (Exception below)')
-                traceback.print_exc()
-                self.error(proto, line.command, str(e), False)
-            except Exception as e:
-                logger.exception('Bug hit! (Exception below)')
-                self.error(proto, line.command, 'Internal server error '
-                           '(this isn\'t your fault)')
 
     def user_enter(self, proto, user, options):
         proto.user = self.online_users[user.name.lower()] = user

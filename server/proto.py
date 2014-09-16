@@ -75,11 +75,15 @@ class DCPBaseProto(asyncio.Protocol):
 
         self.transport = None
 
+        # Line queue
+        self.recvq = asyncio.Queue()
+
     def connection_made(self, transport):
         self.peername = transport.get_extra_info('peername')
         logger.info('Connection from %s', self.peername)
 
         self.transport = transport
+        asyncio.async(self.process())
 
     def connection_lost(self, exc):
         logger.info('Connection lost from %r (reason %s)', self.peername,
@@ -109,7 +113,22 @@ class DCPBaseProto(asyncio.Protocol):
                 self.error('*', 'Parser failure', {'cause': [str(e)]})
                 break
 
-            asyncio.async(self.server.line_queue.put((self, frame)))
+            asyncio.async(self.line_queue.put(frame))
+
+    @asyncio.coroutine
+    def process(self):
+        while True:
+            try:
+                line = (yield from self.line_queue.get())
+            except (UserError, GroupError) as e:
+                logger.warn('Possible bug hit! (Exception below)')
+                traceback.print_exc()
+                self.error(line.command, str(e), False)
+            except Exception as e:
+                logger.exception('Bug hit! (Exception below)')
+                self.error(line.command, 'Internal server error (this isn\'t '
+                           'your fault)')
+                break
 
     @staticmethod
     def _proto_name(target):
