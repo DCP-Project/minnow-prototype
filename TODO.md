@@ -7,7 +7,6 @@ The order of these doesn't matter.
 ## Protocol
 - [ ] Rosters
 - [x] Working properties
-- [ ] Global messaging
 - [ ] Ability to change username
 - [ ] Nicknames (linked to usernames)
 - [ ] Multipart recieving (remember a len limit!)
@@ -30,7 +29,8 @@ The order of these doesn't matter.
 # Important (acceptable admissions for production DCP, but should be resolved)
 
 ## Protocol
-- [ ] Make multipart work better
+- [ ] Make multipart work better (more of an enhancement)
+- [ ] Global messaging
 - [ ] Avatars
 - [ ] Moods
 - [ ] Statuses
