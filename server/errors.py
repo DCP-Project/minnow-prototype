@@ -118,3 +118,23 @@ class StorageError(DCPError):
 class StorageBackendNotFoundError(StorageError):
     "Could not find given storage backend"
     pass
+
+
+class PropertyError(DCPError):
+    "Base error for property errors"
+    pass
+
+
+class PropertyDoesNotExistError(PropertyError):
+    "Property doesn't exist"
+    pass
+
+
+class PropertyInvalidError(PropertyError):
+    "Property is invalid"
+    pass
+
+
+class PropertyValueError(PropertyError):
+    "Property has a bad value"
+    pass
