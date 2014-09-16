@@ -86,15 +86,12 @@ class ProtocolStorage:
     def create_property_user(self, name, property, value=None, setter=None):
         return self.set_property_user(name, property, value, setter)
 
-    def set_property_group(self, name, username, property, value=None,
-                           setter=None):
+    def set_property_group(self, name, property, value=None, setter=None):
         return self.database.modify(queries.s_set_property_group,
-                                    (property, value, name, username))
+                                    (property, value, name, setter))
 
-    def create_property_group(self, name, username, property, value=None,
-                              setter=None):
-        return self.set_property_group(name, username, property, value,
-                                       setter)
+    def create_property_group(self, name, property, value=None, setter=None):
+        return self.set_property_group(name, property, value, setter)
 
     def del_user(self, name):
         return self.database.modify(queries.s_del_user, (name,))
@@ -114,3 +111,11 @@ class ProtocolStorage:
 
     def del_group(self, name):
         return self.database.modify(queries.s_del_group, (name,))
+
+    def del_property_user(self, name, property):
+        return self.database.modify(queries.s_del_property_user,
+                                    (property, name))
+
+    def del_property_group(self, name, property):
+        return self.database.modify(queries.s_del_property_group,
+                                    (property, name))

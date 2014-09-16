@@ -36,12 +36,13 @@ s_create_user = 'INSERT INTO "user" (name,gecos,password) VALUES (?,?,?)'
 s_create_group = 'INSERT INTO "group" (name,topic) VALUES(?,?)'
 
 s_create_user_acl = 'INSERT INTO "acl_user" (acl,user_id,reason) VALUES(' \
-    '(SELECT ?,"user".id FROM "user" WHERE "user".name=?), ?)'
+    '(SELECT ?,"user".id FROM "user" WHERE "user".name=?),(SELECT ?))'
 
 s_create_group_acl = 'INSERT INTO "acl_group" (acl,group_id,user_id,' \
     'setter_id,reason) VALUES((SELECT ?),(SELECT "group".id FROM "group" ' \
     'WHERE "group".name=?),(SELECT "user".id FROM "user" WHERE ' \
-    '"user".name=?), (SELECT "user".id FROM "user" WHERE "user".name=?), ?)'
+    '"user".name=?),(SELECT "user".id FROM "user" WHERE "user".name=?),' \
+    'SELECT(?))'
 
 s_set_user = 'UPDATE "user" SET gecos=IFNULL(?,gecos),password=' \
     'IFNULL(?,password) WHERE "user".name=?'
@@ -50,7 +51,8 @@ s_set_group = 'UPDATE "group" SET topic=? WHERE "group".name=?'
 
 s_set_property_user = 'INSERT OR REPLACE INTO "property_user" (property,' \
     'value,user_id,setter_id) VALUES((SELECT ?),(SELECT ?),(SELECT ' \
-    '"user".id FROM "user" WHERE "user".name=?))'
+    '"user".id FROM "user" WHERE "user".name=?),(SELECT "user".id FROM ' \
+    '"user" WHERE "user".name=?))'
 
 s_set_property_group = 'INSERT OR REPLACE INTO "property_group" (property,' \
     'value,group_id,setter_id) VALUES((SELECT ?),(SELECT ?),(SELECT ' \
@@ -60,17 +62,25 @@ s_set_property_group = 'INSERT OR REPLACE INTO "property_group" (property,' \
 s_del_user = 'DELETE FROM "user" WHERE "user".name=?'
 
 s_del_user_acl = 'DELETE FROM "acl_user" WHERE "acl_user".acl=? AND ' \
-    '"acl_user".user_id IN (SELECT "user".id FROM "user" WHERE "user".name=?)'
+    '"acl_user".user_id = (SELECT "user".id FROM "user" WHERE "user".name=?)'
 
 s_del_user_acl_all = 'DELETE FROM "acl_user" WHERE "acl_user".user_id IN ' \
     '(SELECT "user".id FROM "user" WHERE "user".name=?)'
 
 s_del_group_acl = 'DELETE FROM "acl_group" WHERE "acl_group".acl=? AND ' \
-    '"acl_group".user_id IN (SELECT "user".id FROM "user" WHERE ' \
-    '"user".name=?) AND "acl_group".group_id IN (SELECT "group".id FROM ' \
+    '"acl_group".user_id = (SELECT "user".id FROM "user" WHERE ' \
+    '"user".name=?) AND "acl_group".group_id = (SELECT "group".id FROM ' \
     '"group" WHERE "group".name=?)'
 
-s_del_group_acl_all = 'DELETE FROM "acl_group" WHERE "acl_group".group_id ' \
-    'IN (SELECT "group".id FROM "group" WHERE "group".name=?)'
+s_del_group_acl_all = 'DELETE FROM "acl_group" WHERE "acl_group".group_id =' \
+    '(SELECT "group".id FROM "group" WHERE "group".name=?)'
 
 s_del_group = 'DELETE FROM "group" WHERE "group".name=?'
+
+s_del_property_user = 'DELETE FROM "property_user" WHERE ' \
+    '"property_user".property=? AND "property_user".user_id = (SELECT ' \
+    '"user".id FROM "user" WHERE "user".name=?)'
+
+s_del_property_group = 'DELETE FROM "property_group" WHERE ' \
+    '"property_group".property=? AND "property_group".group_id = (SELECT ' \
+    '"group".id FROM "group" WHERE "group".name=?)'
