@@ -6,7 +6,7 @@ The order of these doesn't matter.
 
 ## Protocol
 - [ ] Rosters
-- [ ] Working properties
+- [x] Working properties
 - [ ] Global messaging
 - [ ] Ability to change username
 - [ ] Nicknames (linked to usernames)
