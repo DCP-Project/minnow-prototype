@@ -42,7 +42,7 @@ The order of these doesn't matter.
 ## Protocol
 - [ ] Optional operation over SCTP sockets
 - [ ] Possible change in the way groups/users/servers/remotes are distinguished
-- [ ] WebSocket transport. I gave it a shot. It's a PITA ATM. Maybe later.
+- [x] WebSocket transport. That was greasy. ¬_¬
 - [ ] Maybe try JSON out a bit more
 - [ ] Maybe a BSON transport?
 - [ ] REALLY COOL! An IRC transport! Both client and TS6 would be amazing. 
