@@ -62,7 +62,7 @@ class BasePropertySet:
 
     def set(self, property, value, setter=None):
         if not isinstance(property, str):
-            assert len(property) = len(value)
+            assert len(property) == len(value)
 
             for i, p in enumerate(property):
                 self.set(p, value[i], setter)

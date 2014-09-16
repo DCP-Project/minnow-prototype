@@ -250,8 +250,12 @@ class DCPServer:
             acl_data = (yield from self.proto_store.get_group_acl(target))
             acl_set = GroupACLSet(self, target, acl_data)
 
+            prop_data = (yield from self.proto_store.get_group_property(
+                target))
+            prop_set = GroupPropertySet(self, target, prop_data)
+
             return Group(self, target, g_data['topic'], acl_set,
-                         None, g_data['timestamp'])
+                         prop_set, g_data['timestamp'])
         else:
             u_data = (yield from self.proto_store.get_user(target))
             if u_data is None:
@@ -261,4 +265,8 @@ class DCPServer:
             acl_data = (yield from self.proto_store.get_user_acl(target))
             acl_set = UserACLSet(self, target, acl_data)
 
-            return User(self, target, u_data['gecos'], acl_set)
+            prop_data = (yield from self.proto_store.get_user_property(
+                target))
+            prop_set = UserPropertySet(self, target, prop_data)
+
+            return User(self, target, u_data['gecos'], acl_set, prop_set)

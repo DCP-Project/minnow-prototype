@@ -7,7 +7,9 @@
 import asyncio
 import crypt
 
-from server.property import UserProperty
+from time import time
+
+from server.property import UserPropertySet
 from server.acl import UserACLSet
 
 
@@ -17,7 +19,15 @@ class User:
         self.server = server
         self.name = name
         self._gecos = gecos
+
+        if acl is None:
+            self.acl = UserACLSet(server, name)
+
         self.acl = acl
+
+        if property is None:
+            property = UserPropertySet(server, name)
+
         self.property = property  # TODO
         self.roster = roster  # TODO
         self.options = options  # TODO
@@ -25,11 +35,7 @@ class User:
         self.sessions = set()
         self.groups = set()
 
-        if self.acl is None:
-            self.acl = UserACLSet()
-
-        if self.property is None:
-            self.property = UserProperty()
+        self.signon = round(time())
 
     @property
     def gecos(self):

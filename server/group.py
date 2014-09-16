@@ -10,7 +10,7 @@ from collections import defaultdict
 from server.user import User
 from server.parser import MAXFRAME
 from server.acl import GroupACLSet
-from server.property import GroupProperty
+from server.property import GroupPropertySet
 from server.errors import *
 
 
@@ -21,18 +21,19 @@ class Group:
         self.server = server
         self.name = name
         self._topic = topic
+
+        if acl is None:
+            acl = GroupACLSet(server, name)
+
         self.acl = acl
+
+        if property is None:
+            property = GroupPropertySet(server, name)
+
         self.property = property
+
         self.users = set()
         self.ts = None
-
-        self.callbacks = dict()
-
-        if self.acl is None:
-            self.acl = defaultdict(GroupACLSet)
-
-        if self.property is None:
-            self.property = GroupProperty()
 
         if self.ts is None:
             self.ts = round(time.time())
@@ -132,13 +133,3 @@ class Group:
                 continue
 
             user.send_multipart(source, target, command, keys, kval)
-
-    def call_later(self, name, delay, callback, *args):
-        loop = asyncio.get_event_loop()
-        self.callback[name] = loop.call_later(delay, callback, *args)
-        return self.callback[name]
-
-    def call_at(self, name, when, callback, *args):
-        loop = asyncio.get_event_loop()
-        self.callback[name] = loop.call_at(when, callback, *args)
-        return self.callback[name]
