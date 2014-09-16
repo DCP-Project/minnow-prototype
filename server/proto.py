@@ -20,7 +20,7 @@ from server.server import DCPServer
 from server.errors import *
 from settings import *
 
-if globals().get('listen.websockets'):
+if globals().get('listen_websockets'):
     try:
         import websockets
     except ImportError:
