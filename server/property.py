@@ -44,9 +44,9 @@ class BasePropertySet:
         if not prop_data:
             return
 
-        for property in prop_data:
-            self._set_nocommit(property['property'], property['setter'],
-                               property['timestamp'])
+        for prop in prop_data:
+            self._set_nocommit(prop['property'], prop['setter'],
+                               prop['timestamp'])
 
     def __iter__(self):
         return self.prop_map.items()
