@@ -7,7 +7,6 @@
 import asyncio
 
 from server.command import Command, register
-from server.acl import UserACLValues, GroupACLValues
 
 
 class ACLBase:
@@ -17,7 +16,7 @@ class ACLBase:
         if user not in gtarget.users:
             return (False, 'Must be in group to alter ACL\'s in it')
 
-        check_grant = ['grant', 'grant:*']
+        check_grant = ['grant:*']
         check_grant.extend('grant:' + a for a in acl)
         if gtarget.acl.has_any(check_grant):
             return (True, None)
@@ -41,6 +40,9 @@ class ACLBase:
     @staticmethod
     def has_grant(server, user, gtarget, utarget, acl):
         target = getattr(target, 'name', target)
+
+        if isinstance(acl, str):
+            acl = (acl,)
 
         if target[0] == '#':
             ret = (yield from ACLBase.has_grant_group(server, user, gtarget,
@@ -86,11 +88,6 @@ class ACLBase:
                          {'target': [target], 'acl': acl})
             return (None, None)
         else:
-            if acl not in UserACLValues:
-                server.error(user, line.command, 'Invalid ACL', False,
-                             {'target': [target], 'acl': acl})
-                return (None, None)
-
             gtarget = None
             utarget = (yield from server.get_any_target(target))
 
@@ -127,8 +124,9 @@ class ACLSet(ACLBase, Command):
                 gtarget.acl.add(utarget, acl, user, reason)
             else:
                 utarget.acl.add(acl, user, reason)
-        except ACLExistsError as e:
-            server.error(user, line.command, 'ACL exists', False, kwds)
+        except ACLError as e:
+            error = 'Error adding ACL: {}'.format(str(e))
+            server.error(user, line.command, error, False, kwds)
             return
 
         # Report to the target if they're online
@@ -160,8 +158,9 @@ class ACLSet(ACLBase, Command):
                 gtarget.acl.add(utarget, acl, proto, reason)
             else:
                 utarget.acl.add(acl, proto, reason)
-        except ACLExistsError as e:
-            server.error(proto, line.command, 'ACL exists', False, kwds)
+        except ACLError as e:
+            error = 'Error adding ACL: {}'.format(str(e))
+            server.error(user, line.command, error, False, kwds)
             return
 
         # Report to the target if they're online
@@ -202,8 +201,9 @@ class ACLDel(ACLBase, Command):
                 gtarget.acl.delete(utarget, acl)
             else:
                 utarget.acl.delete(acl)
-        except ACLDoesNotExistError as e:
-            server.error(user, line.command, 'ACL does not exist', False, kwds)
+        except ACLError as e:
+            error = 'Error deleting ACL: {}'.format(str(e))
+            server.error(user, line.command, error, False, kwds)
             return
 
         # Report to the target if they're online
@@ -237,8 +237,9 @@ class ACLDel(ACLBase, Command):
                 gtarget.acl.delete(utarget, acl)
             else:
                 utarget.acl.delete(acl)
-        except ACLDoesNotExistError as e:
-            server.error(proto, line.command, 'ACL does not exist', False, kwds)
+        except ACLError as e:
+            error = 'Error deleting ACL: {}'.format(str(e))
+            server.error(user, line.command, error, False, kwds)
             return
 
         # Report to the target if they're online

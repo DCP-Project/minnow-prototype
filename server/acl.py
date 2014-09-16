@@ -55,6 +55,9 @@ class GroupACLValues(enum.Enum):
     group_property = 'group:property'
     group_clear = 'group:clear'
 
+    # Blanket grant
+    grant_all = 'grant:*'
+
     # Prohibition ACL's
     ban_banned = 'ban:banned'
     ban_mute = 'ban:mute'
@@ -100,9 +103,15 @@ class UserACLSet:
     def get(self, acl):
         return self.acl_map.get(acl)
 
+    USERACL_MEMBERS = frozenset(a.value for a in
+                                UserACLValues.__members__.values())
+
     def _add_nocommit(self, acl, setter=None, reason=None, time_=None):
         if acl in self.acl_map:
-            raise ACLExistsError(acl)
+            continue
+
+        if acl not in self.USERACL_MEMBERS:
+            return
 
         self.acl_map[acl] = ACL(setter, reason, time_)
 
@@ -112,6 +121,12 @@ class UserACLSet:
                 self.add(a, setter, reason)
 
             return
+
+        if acl in self.acl_map:
+            raise ACLExistsError(acl)
+
+        if acl not in self.USERACL_MEMBERS:
+            raise ACLValueError(acl)
 
         self._add_nocommit(acl, setter, reason)
 
@@ -176,9 +191,16 @@ class GroupACLSet:
         user = getattr(user, 'name', user)
         return self.acl_map.get(user)
 
+    GROUPACL_MEMBERS = frozenset(a.value for a in
+                                 GroupACLValues.__members__.values())
+
     def _add_nocommit(self, user, acl, setter=None, reason=None, time_=None):
         if acl in self.acl_map[user]:
-            raise ACLExistsError(acl)
+            pass
+
+        if acl not in self.GROUPACL_MEMBERS:
+            if acl.replace('grant:', '') not in self.GROUPACL_MEMBERS:
+                return
 
         self.acl_map[user][acl] = ACL(setter, reason, time_)
 
@@ -189,6 +211,14 @@ class GroupACLSet:
                 self.add(user, a, setter, reason)
 
             return
+
+        if acl in self.acl_map[user]:
+            raise ACLExistsError(acl)
+
+        if acl not in self.GROUPACL_MEMBERS:
+            if acl.replace('grant:', '') not in self.GROUPACL_MEMBERS:
+                # Allow special grant: ACL's
+                raise ACLValueError(acl)
 
         self._add_nocommit(user, acl, setter, reason)
 

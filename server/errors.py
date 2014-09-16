@@ -110,6 +110,11 @@ class ACLDoesNotExistError(ACLError):
     pass
 
 
+class ACLValueError(ACLError):
+    "Invalid ACL"
+    pass
+
+
 class StorageError(DCPError):
     "Storage backend related error"
     pass
