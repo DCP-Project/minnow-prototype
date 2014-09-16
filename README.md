@@ -23,5 +23,5 @@ The motd is stored in `motd.txt`. All lines will be truncated at 200 characters
 for sanity reasons.
 
 ## Development
-See the [TODO](https://github.com/DCP-Project/minnow-prototype/TODO.md) for 
+See the [TODO](https://github.com/DCP-Project/minnow-prototype/blob/master/TODO.md) for 
 details.
