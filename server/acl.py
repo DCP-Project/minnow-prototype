@@ -108,7 +108,7 @@ class UserACLSet:
 
     def _add_nocommit(self, acl, setter=None, reason=None, time_=None):
         if acl in self.acl_map:
-            continue
+            return
 
         if acl not in self.USERACL_MEMBERS:
             return
