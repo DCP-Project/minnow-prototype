@@ -249,35 +249,8 @@ class ACLDel(ACLBase, Command):
 
         proto.send(server, None, line.command, kwds)
 
+
 class ACLList(ACLBase, Command):
-    @staticmethod
-    def split_acl(data):
-        acl_entry = []
-        acl_time = []
-        acl_setter = []
-
-        # Split out the ACL info
-        for entry in data:
-            acl = entry['acl']
-            time = entry['timestamp']
-            setter = entry['setter']
-
-            if not acl:
-                # TODO warning
-                continue
-
-            if time is None:
-                time = 0
-
-            if setter is None:
-                setter = '*'
-
-            acl_entry.append(acl)
-            acl_time.append(time)
-            acl_setter.append(setter)
-
-        return acl_entry, acl_time, acl_setter
-
     @asyncio.coroutine
     def registered(self, server, user, proto, line):
         gtarget, utarget = super().registered(server, user, line)
@@ -296,9 +269,7 @@ class ACLList(ACLBase, Command):
             kwds['reason'] = [reason]
 
         if gtarget:
-            # TODO property value for group:grant only ACL viewing
-            data = (yield from server.proto_store.get_group_acl(
-                    gtarget.name.lower()))
+            target = gtarget
         else:
             # ACL's should only be viewable by those with grant priv for users
             # TODO is this correct?
@@ -308,21 +279,23 @@ class ACLList(ACLBase, Command):
                 server.error(user, line.command, msg, False, kwds)
                 return
 
-            data = (yield from server.proto_store.get_user_acl(
-                    utarget.name.lower()))
+            target = utarget
 
-        if not data:
-            user.send(server, user, line.command, kwds)
-            return
+        entry = []
+        timestamp = []
+        setter = []
+        for acl, val in target.acl:
+            entry.append(acl)
+            timestamp.append(val.time)
+            setter.append(val.setter)
 
-        acl_entry, acl_time, acl_setter = self.split_acl(data)
         kwds.update({
-            'acl': acl_entry,
-            'acl-time': acl_time,
-            'acl-setter': acl_setter,
+            'acl': entry,
+            'timestamp': time,
+            'setter': setter,
         })
         user.send_multipart(server, user, line.command,
-                            ('acl', 'acl-time', 'acl-setter'), kwds)
+                            ('acl', 'timestamp', 'setter'), kwds)
 
     @asyncio.coroutine
     def ipc(self, server, proto, line):
@@ -342,25 +315,34 @@ class ACLList(ACLBase, Command):
             kwds['reason'] = [reason]
 
         if gtarget:
-            # TODO property value for group:grant only ACL viewing
-            data = (yield from server.proto_store.get_group_acl(
-                    gtarget.name.lower()))
+            target = gtarget
         else:
-            data = (yield from server.proto_store.get_user_acl(
-                    utarget.name.lower()))
+            # ACL's should only be viewable by those with grant priv for users
+            # TODO is this correct?
+            ret, msg = (yield from self.has_grant(server, user, gtarget,
+                                                  utarget, acl))
+            if not ret:
+                server.error(user, line.command, msg, False, kwds)
+                return
 
-        if not data:
-            proto.send(server, None, line.command, kwds)
-            return
+            target = utarget
 
-        acl_entry, acl_time, acl_setter = self.split_acl(data)
+        entry = []
+        timestamp = []
+        setter = []
+        for acl, val in target.acl:
+            entry.append(acl)
+            timestamp.append(val.time)
+            setter.append(val.setter)
+
         kwds.update({
-            'acl': acl_entry,
-            'acl-time': acl_time,
-            'acl-setter': acl_setter,
+            'acl': entry,
+            'timestamp': time,
+            'setter': setter,
         })
         proto.send_multipart(server, None, line.command,
-                             ('acl', 'acl-time', 'acl-setter'), kwds)
+                             ('acl', 'timestamp', 'setter'), kwds)
+
 
 register.update({
     'acl-set': ACLSet(),

@@ -80,7 +80,7 @@ class UserACLSet:
                                acl['timestamp'])
 
     def __iter__(self):
-        return iter(self.acl_map)
+        return self.acl_map.items()
 
     def has_acl(self, acl):
         return acl in self.acl_map
