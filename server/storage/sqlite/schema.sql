@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS 'user' (
     name VARCHAR(48) UNIQUE NOT NULL,
     password VARCHAR(128) NOT NULL,
     gecos VARCHAR(64),
-    timestamp INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    timestamp INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    avatar BLOB -- XXX does this belong here?
 );
 
 CREATE TABLE IF NOT EXISTS 'acl_user' (
