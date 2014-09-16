@@ -11,6 +11,7 @@ servname = 'elizabethmyers.me.uk'
 # Listen on this IP/port pair
 listen = ('0.0.0.0', 7266)
 listen_json = ('0.0.0.0', 7267)
+listen_websockets = ('0.0.0.0', 8080)
 
 # Server password
 servpass = None

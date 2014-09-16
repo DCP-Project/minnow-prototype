@@ -11,6 +11,7 @@ import random
 import logging
 import traceback
 
+from sys import stderr
 from collections import defaultdict
 
 import server.parser as parser
@@ -18,6 +19,16 @@ import server.parser as parser
 from server.server import DCPServer
 from server.errors import *
 from settings import *
+
+if globals().get('listen.websockets'):
+    try:
+        import websockets
+    except ImportError:
+        print('WebSocket support requested, but websockets module not found',
+              file=stderr)
+        print('Get it at http://github.com/aaugustin/websockets', file=stderr)
+
+        websockets = None
 
 logger = logging.getLogger(__name__)
 
@@ -346,3 +357,45 @@ class DCPJSONProto(DCPSocketProto):
 class DCPUnixProto(DCPBaseProto):
     def __init__(self, server):
         super().__init__(server, parser.JSONFrame)
+
+
+class WebSocketsWrapper:
+    """Crummy wrapper around the websockets lib to fake a proto.
+
+    It really sucks but it's the best way atm."""
+
+    def connection_made(self, transport):
+        print("Connection made", transport)
+        self.transport = transport
+
+    def connection_closed(self, exc):
+        print("Connection closed")
+
+    def data_received(self, data):
+        print("Got some data!", data)
+        self.transport.write(data)
+
+    def __call__(self, websocket, path):
+        def write(data):
+            data = data.decode('utf-8', 'replace')
+            asyncio.async(websocket.send(data))
+
+        def close():
+            data = data.decode('utf-8', 'replace')
+            asyncio.async(websocket._real_close())
+
+        websocket.write = write
+        websocket._real_close = websocket.close
+        websocket.close = close
+        self.connection_made(websocket)
+        while True:
+            message = yield from websocket.recv()
+            if not message:
+                self.connection_closed(None)
+                break
+
+            self.data_received(message.encode('utf-8', 'replace'))
+
+
+class DCPWebSocketsProto(DCPJSONProto, WebSocketsWrapper):
+    pass
