@@ -46,7 +46,7 @@ class BasePropertySet:
             return
 
         for property in prop_data:
-            self._add_nocommit(property['property'], property['setter'],
+            self._set_nocommit(property['property'], property['setter'],
                                property['reason'], property['timestamp'])
 
     def __iter__(self):
@@ -58,17 +58,17 @@ class BasePropertySet:
     def get(self, property):
         return self.prop_map.get(property)
 
-    def _add_nocommit(self, property, value, setter=None, time_=None):
+    def _set_nocommit(self, property, value, setter=None, time_=None):
         self.prop_map[property] = Property(value, setter, time_)
 
-    def add(self, property, value, setter=None):
+    def set(self, property, value, setter=None):
         if not isinstance(property, str):
             for p in property:
-                self.add(p, setter)
+                self.set(p, setter)
 
             return
 
-        self._add_nocommit(property, value, setter)
+        self._set_nocommit(property, value, setter)
 
     def delete(self, property):
         if not isinstance(property, str):
@@ -90,7 +90,7 @@ class UserPropertySet(BasePropertySet):
         super().__init__(server, prop_data)
         self.user = user.lower()
 
-    def _add_nocommit(self, property, value, setter=None, time_=None):
+    def _set_nocommit(self, property, value, setter=None, time_=None):
         property = property.lower()
 
         if property not in UserPropertyValues:
@@ -107,14 +107,19 @@ class UserPropertySet(BasePropertySet):
             except Exception as e:
                 raise PropertyValueError() from e
 
-        super()._add_nocommit(property, value, setter, time_)
+        super()._set_nocommit(property, value, setter, time_)
 
-    def add(self, property, value, setter=None):
+    def set(self, property, value, setter=None):
         property = property.lower()
         if property not in UserPropertyValues:
             raise PropertyInvalidError(property)
 
-        super().add(property, value, setter)
+        setter = getattr(setter, 'name', setter)
+
+        super().set(property, value, setter)
+
+        if setter:
+            setter = setter.lower()
 
         function = self.server.proto_store.set_property_user
         asyncio.async(function(self.user, property, value, setter))
@@ -132,7 +137,7 @@ class GroupPropertySet(BasePropertySet):
         super().__init__(server, prop_data)
         self.group = group.lower()
 
-    def _add_nocommit(self, property, value, setter=None, time_=None):
+    def _set_nocommit(self, property, value, setter=None, time_=None):
         property = property.lower()
 
         if property not in GroupPropertyValues:
@@ -145,10 +150,19 @@ class GroupPropertySet(BasePropertySet):
             except Exception as e:
                 raise PropertyValueError() from e
 
-        super()._add_nocommit(property, value, setter, time_)
+        super()._set_nocommit(property, value, setter, time_)
 
-    def add(self, property, value, setter=None):
-        super().add(property, value, setter)
+    def set(self, property, value, setter=None):
+        property = property.lower()
+        if property not in GroupPropertyValues:
+            raise PropertyInvalidError(property)
+
+        setter = getattr(setter, 'name', setter)
+        super().set(property, value, setter)
+
+        if setter:
+            setter = setter.lower()
+
         function = self.server.proto_store.set_property_group
         asyncio.async(function(self.group, property, value, setter))
 
