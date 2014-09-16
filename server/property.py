@@ -20,10 +20,9 @@ class GroupPropertyValues(enum.Enum):
 
 
 class Property:
-    __slots__ = ['property', 'value', 'setter', 'time_']
+    __slots__ = ['value', 'setter', 'time_']
 
-    def __init__(self, property, value, setter=None, time_=None):
-        self.property = property
+    def __init__(self, value, setter=None, time_=None):
         self.value = value
         self.setter = setter
 
@@ -50,7 +49,7 @@ class BasePropertySet:
                                property['timestamp'])
 
     def __iter__(self):
-        return iter(self.prop_map)
+        return self.prop_map.items()
 
     def has_property(self, property):
         return property in self.prop_map
