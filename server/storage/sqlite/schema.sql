@@ -72,8 +72,43 @@ CREATE TABLE IF NOT EXISTS 'property_group' (
     UNIQUE(property, group_id)
 );
 
+CREATE TABLE IF NOT EXISTS 'roster' (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES 'user(id)' ON DELETE CASCADE ON UPDATE
+        CASCADE,
+    UNIQUE(user_id)
+);
+
+CREATE TABLE IF NOT EXISTS 'roster_entry_user' (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL, -- Stores the member, NOT the owner of the entry!
+    roster_id INTEGER NOT NULL,
+    alias VARCHAR(512),
+    group_tag VARCHAR(32),
+    blocked INTEGER DEFAULT (0),
+    FOREIGN KEY(user_id) REFERENCES 'user(id)' ON DELETE CASCADE ON UPDATE
+        CASCADE,
+    FOREIGN KEY(roster_id) REFERENCES 'roster(id)' ON DELETE CASCADE ON UPDATE
+        CASCADE,
+    UNIQUE(user_id, roster_id)
+);
+
+CREATE TABLE IF NOT EXISTS 'roster_entry_group' (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    roster_id INTEGER NOT NULL,
+    alias VARCHAR(512),
+    group_tag VARCHAR(32),
+    FOREIGN KEY(group_id) REFERENCES 'group(id)' ON DELETE CASCADE ON UPDATE
+        CASCADE,
+    FOREIGN KEY(roster_id) REFERENCES 'roster(id)' ON DELETE CASCADE ON UPDATE
+        CASCADE,
+    UNIQUE(group_id, roster_id)
+);
+
 CREATE TABLE IF NOT EXISTS 'version' (
     id INTEGER UNIQUE NOT NULL
 );
 
-INSERT OR REPLACE INTO 'version' VALUES (2);
+INSERT OR REPLACE INTO 'version' VALUES (3);
