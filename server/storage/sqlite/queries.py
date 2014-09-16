@@ -11,8 +11,11 @@ s_get_user_acl = 'SELECT "acl_user".acl,"acl_user".timestamp,"user2".name ' \
     '"acl_user".setter_id="user2".id WHERE "user".name=? AND ' \
     '"acl_user".user_id="user".id '
 
-s_get_user_property = 'SELECT "property_user".* FROM "property_user",' \
-    '"user" WHERE "user".name=? AND "property_user".user_id="user".id'
+s_get_user_property = 'SELECT "property_user".property' \
+    '"property_user".value,"property_user".timestamp,"user2".name AS ' \
+    'setter FROM "property_user","user" LEFT OUTER JOIN "user" AS "user2" ' \
+    'ON "property_user".setter_id="user2".id WHERE "user".name=? AND ' \
+    '"property_user".user_id="user".id'
 
 s_get_group = 'SELECT "group".* FROM "group" WHERE "name"=?'
 
@@ -26,10 +29,11 @@ s_get_group_acl_user = 'SELECT "acl_group".*,"user2".name FROM ' \
     '"user".name=? AND "group".id="acl_group".group_id AND ' \
     '"user".id="acl_user".user_id'
 
-s_get_group_property = 'SELECT "property_group".*,"user".name AS username ' \
-    'FROM "property_group","user","group" WHERE "group".name=? AND ' \
-    '"group".id="property_group".group_id AND ' \
-    '"user".id="property_group".user_id'
+s_get_group_property = 'SELECT "property_group".property,' \
+    '"property_group".value,"property_user".timestamp,"user".name AS ' \
+    'setter FROM "property_group","group" LEFT OUTER JOIN "user" ON ' \
+    '"property_user".setter_id="user2".id WHERE "group".name=? AND ' \
+    '"group".id="property_group".group_id'
 
 s_create_user = 'INSERT INTO "user" (name,gecos,password) VALUES (?,?,?)'
 
