@@ -12,7 +12,8 @@ from server.acl import UserACLValues, GroupACLValues
 
 class ACLBase:
     @asyncio.coroutine
-    def has_grant_group(self, server, user, gtarget, acl):
+    @staticmethod
+    def has_grant_group(server, user, gtarget, acl):
         if user not in gtarget.users:
             return (False, 'Must be in group to alter ACL\'s in it')
 
@@ -27,7 +28,8 @@ class ACLBase:
         return (True, None)
 
     @asyncio.coroutine
-    def has_grant_user(self, server, user, utarget, acl):
+    @staticmethod
+    def has_grant_user(server, user, utarget, acl):
         check_grant = ['user:grant']
         check_grant.extend(acl)
         if not gtarget.acl.has_acl_all(check_grant):
@@ -36,14 +38,16 @@ class ACLBase:
         return (True, None)
 
     @asyncio.coroutine
-    def has_grant(self, server, user, gtarget, utarget, acl):
+    @staticmethod
+    def has_grant(server, user, gtarget, utarget, acl):
         target = getattr(target, 'name', target)
 
         if target[0] == '#':
-            ret = (yield from self.has_grant_group(server, user, gtarget,
-                                                   acl))
+            ret = (yield from ACLBase.has_grant_group(server, user, gtarget,
+                                                      acl))
         else:
-            ret = (yield from self.has_grant_user(server, user, utarget, acl))
+            ret = (yield from ACLBase.has_grant_user(server, user, utarget,
+                                                     acl))
 
         return ret
 
