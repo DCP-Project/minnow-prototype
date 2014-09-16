@@ -99,7 +99,7 @@ class PropertyDel(Command):
 
         user.send(user, line.command, line.kval)
 
-class PropertyList(ACLBase, Command):
+class PropertyList(Command):
     @asyncio.coroutine
     def registered(self, server, user, proto, line):
         if 'property' not in line.kval:
