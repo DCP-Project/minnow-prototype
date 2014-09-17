@@ -84,9 +84,9 @@ class ProtocolStorage:
         return self.database.modify(queries.s_create_roster_user,
                                     (name, user, alias, group_tag))
 
-    def create_roster_group(self, name, user, alias=None, group_tag=None):
+    def create_roster_group(self, name, group, alias=None, group_tag=None):
         return self.database.modify(queries.s_create_roster_group,
-                                    (name, user, alias, group_tag))
+                                    (name, group, alias, group_tag))
 
     def set_user(self, name, *, gecos=None, password=None):
         return self.database.modify(queries.s_set_user,

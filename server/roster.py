@@ -7,67 +7,113 @@
 import asyncio
 
 
-class RosterEntryUser:
-    __slots__ = ['user', 'roster', 'alias', 'group_tag', 'blocked']
+class RosterEntryBase:
+    __slots__ = ['target', 'alias', 'group_tag', 'blocked']
 
-    def __init__(self, user, roster, alias=None, group_tag=None,
-                 blocked=False):
-        self.user = user
+    def __init__(self, target, alias=None, group_tag=None, blocked=False):
+        self.target = target
         self.roster = roster
 
         if alias is None:
-            alias = user.name.lower()
+            alias = target.name.lower()
 
+        self.alias = alias
         self.group_tag = group_tag
         self.blocked = bool(blocked)
 
 
 class RosterEntryGroup:
-    __slots__ = ['group', 'roster', 'alias', 'group_tag', 'blocked']
+    __slots__ = ['target', 'alias', 'group_tag']
 
-    def __init__(self, group, roster, alias=None, group_tag=None):
-        self.group = group
-        self.roster = roster
+    def __init__(self, target, alias=None, group_tag=None):
+        self.target = target
 
         if alias is None:
-            alias = group.name.lower()
+            alias = target.name.lower()
 
+        self.alias = alias
         self.group_tag = group_tag
 
 
 class Roster:
     def __init__(self, server, user, member_user=None, member_group=None):
         self.server = server
+        self.proto_store = server.proto_store
+
+        user = getattr(user, 'name', user).lower()
+
         self.user = user
 
-        self.entry_user = dict()
-        self.entry_group = dict()
+        self.roster_map = dict()
 
-    def _add_nocommit(self, target, alias=None, group_tag=None,
+    def _add_nocommit(self, user, target, alias=None, group_tag=None,
                       blocked=False):
-        orig_target = target
-        target = target.lower()
+        user = getattr(user, 'name', user)
 
-        if target[0] == '#':
+        if not hasattr(target, 'name'):
+            target = server.get_any_target(target)
+
+        if not target:
+            # FIXME lazy
+            return (False, TargetDoesNotExistError(target))
+
+        tname = target.name.lower()
+
+        if tname[0] == '#':
             inst = RosterEntryGroup
-            d = self.entry_group
-            args = (orig_target, self, alias, group_tag)
+            args = (user, target, user, self, alias, group_tag)
         else:
             inst = RosterEntryUser
-            d = self.entry_user
-            args = (orig_target, self, alias, group_tag, blocked)
+            args = (user, target, self, alias, group_tag, blocked)
 
-        d[target] = inst(*args)
+        if user in d:
+            # FIXME needs a proper error
+            return (False, UserExistsError())
+
+        self.roster_map[tname] = inst(*args)
+        return True
 
     def add(self, target, alias=None, group_tag=None):
-        self._add_nocommit(target, alias, group_tag)
+        ret, exc = self._add_nocommit(target, alias, group_tag)
+        if not ret:
+            raise exc
+
+        if target.name[0] == '#':
+            function = self.proto_store.create_roster_group
+            asyncio.async(function(user, target.name.lower(), alias,
+                                   group_tag))
+        else:
+            function = self.proto_store.create_roster_user
+
+        asyncio.async(function(user, target.name.lower(), alias, group_tag))
+
+    def set(self, target, **kwargs):
+        target = server.get_any_target(target)
+        if not target:
+            # FIXME lazy
+            raise TargetDoesNotExistError()
+
+        tname = target.name.lower()
+
+        if tname not in self.roster_map:
+            raise RosterDoesNotExistError()
+
+        try:
+            roster = d[tname]
+            for k, v in kwargs.items():
+                setattr(roster, k, v)
+        except AttributeError as e:
+            raise RosterAttributeError from e
+
+        asyncio.async(function(user, tname, **kwargs))
 
     def delete(self, target):
-        target = target.lower()
+        target = getattr(target, 'name', target).lower()
         try:
-            if target[0] == '#':
-                del self.entry_group[target]
-            else:
-                del self.entry_user[target]
+            function = (self.proto_store.del_roster_group if target[0] == '#'
+                        else self.proto_store.del_roster_group)
+            del self.entry_user[target]
         except KeyError as e:
             raise RosterDoesNotExistError(target) from e
+
+        asyncio.async(function(user, target))

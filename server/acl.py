@@ -108,12 +108,13 @@ class UserACLSet:
 
     def _add_nocommit(self, acl, setter=None, reason=None, time_=None):
         if acl in self.acl_map:
-            return
+            return (False, ACLExistsError(acl))
 
         if acl not in self.USERACL_MEMBERS:
-            return
+            return (False, ACLValueError(acl))
 
         self.acl_map[acl] = ACL(setter, reason, time_)
+        return (True, None)
 
     def add(self, acl, setter=None, reason=None):
         if not isinstance(acl, str):
@@ -122,13 +123,9 @@ class UserACLSet:
 
             return
 
-        if acl in self.acl_map:
-            raise ACLExistsError(acl)
-
-        if acl not in self.USERACL_MEMBERS:
-            raise ACLValueError(acl)
-
-        self._add_nocommit(acl, setter, reason)
+        ret, code = self._add_nocommit(acl, setter, reason)
+        if not ret:
+            raise code
 
         asyncio.async(self.server.proto_store.create_user_acl(self.user, acl,
                                                               reason))

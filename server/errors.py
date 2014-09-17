@@ -9,6 +9,16 @@ class DCPError(Exception):
     pass
 
 
+class TargetError(DCPError):
+    "Problems with a target"
+    pass
+
+
+class TargetDoesNotExistError(TargetError):
+    "Target doesn't exist"
+    pass
+
+
 class ParserError(DCPError):
     "Base error for all parser errors"
     pass
@@ -50,6 +60,11 @@ class MultipartOverflowError(MultipartError):
 
 class UserError(DCPError):
     "Base error for all user-related doodads"
+    pass
+
+
+class UserDoesNotExistError(UserError):
+    "User doesn't exist"
     pass
 
 
@@ -152,4 +167,9 @@ class RosterError(DCPError):
 
 class RosterDoesNotExistError(RosterError):
     "Roster doesn't exist"
+    pass
+
+
+class RosterAttributeError(RosterError):
+    "Problem with a value passed to roster stuff"
     pass

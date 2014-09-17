@@ -20,7 +20,7 @@ class GroupPropertyValues(enum.Enum):
 
 
 class Property:
-    __slots__ = ['value', 'setter', 'time_']
+    __slots__ = ['value', 'setter', 'time']
 
     def __init__(self, value, setter=None, time_=None):
         self.value = value
@@ -29,8 +29,7 @@ class Property:
         if time_ is None:
             time_ = round(time)
 
-        self.time = time_
-
+        self.time = time()
 
 class BasePropertySet:
     __slots__ = ['server', 'prop_map']
@@ -59,6 +58,7 @@ class BasePropertySet:
 
     def _set_nocommit(self, property, value, setter=None, time_=None):
         self.prop_map[property] = Property(value, setter, time_)
+        return (True, None)
 
     def set(self, property, value, setter=None):
         if not isinstance(property, str):
@@ -95,38 +95,31 @@ class UserPropertySet(BasePropertySet):
         property = property.lower()
 
         if property not in UserPropertyValues:
-            # Don't choke when the db sends us bad values
-            return
+            return (False, PropertyInvalidError(property))
 
         if not setter:
             setter = self.user
 
-        typecast = UserPropertyValues[property]
+        typecast = UserPropertyValues[property].value
         if typecast is not None:
             try:
                 value = typecast(value)
             except Exception as e:
-                raise PropertyValueError() from e
+                return (False, PropertyValueError(str(e)))
 
-        super()._set_nocommit(property, value, setter, time_)
+        return super()._set_nocommit(property, value, setter, time_)
 
     def set(self, property, value, setter=None):
         property = property.lower()
-        if property not in UserPropertyValues:
-            raise PropertyInvalidError(property)
-
-        setter = getattr(setter, 'name', setter)
-
         if property in self.prop_map:
             function = self.server.proto_store.set_property_user
         else:
             function = self.server.proto_store.create_property_user
 
-        setter = getattr(setter, 'name', setter)
+        setter = getattr(setter, 'name', setter).lower()
         super().set(property, value, setter)
-
-        if setter:
-            setter = setter.lower()
+        if not ret:
+            raise code
 
         asyncio.async(function(self.user, property, value, setter))
 
@@ -147,32 +140,28 @@ class GroupPropertySet(BasePropertySet):
         property = property.lower()
 
         if property not in GroupPropertyValues:
-            return
+            return (False, PropertyInvalidError(property))
 
-        typecast = GroupPropertyValues[property]
+        typecast = GroupPropertyValues[property].value
         if typecast is not None:
             try:
                 value = typecast(value)
             except Exception as e:
-                raise PropertyValueError() from e
+                return (False, PropertyValueError(str(e)))
 
-        super()._set_nocommit(property, value, setter, time_)
+        return super()._set_nocommit(property, value, setter, time_)
 
     def set(self, property, value, setter=None):
         property = property.lower()
-        if property not in GroupPropertyValues:
-            raise PropertyInvalidError(property)
-
         if property in self.prop_map:
             function = self.server.proto_store.set_property_user
         else:
             function = self.server.proto_store.create_property_user
 
-        setter = getattr(setter, 'name', setter)
-        super().set(property, value, setter)
-
-        if setter:
-            setter = setter.lower()
+        setter = getattr(setter, 'name', setter).lower()
+        ret, code = super().set(property, value, setter)
+        if not ret:
+            raise code
 
         asyncio.async(function(self.group, property, value, setter))
 
