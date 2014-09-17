@@ -117,12 +117,17 @@ class UserPropertySet(BasePropertySet):
 
         setter = getattr(setter, 'name', setter)
 
+        if property in self.prop_map:
+            function = self.server.proto_store.set_property_user
+        else:
+            function = self.server.proto_store.create_property_user
+
+        setter = getattr(setter, 'name', setter)
         super().set(property, value, setter)
 
         if setter:
             setter = setter.lower()
 
-        function = self.server.proto_store.set_property_user
         asyncio.async(function(self.user, property, value, setter))
 
     def delete(self, property):
@@ -158,13 +163,17 @@ class GroupPropertySet(BasePropertySet):
         if property not in GroupPropertyValues:
             raise PropertyInvalidError(property)
 
+        if property in self.prop_map:
+            function = self.server.proto_store.set_property_user
+        else:
+            function = self.server.proto_store.create_property_user
+
         setter = getattr(setter, 'name', setter)
         super().set(property, value, setter)
 
         if setter:
             setter = setter.lower()
 
-        function = self.server.proto_store.set_property_group
         asyncio.async(function(self.group, property, value, setter))
 
     def delete(self, property):

@@ -49,20 +49,28 @@ s_create_group_acl = 'INSERT INTO "acl_group" (acl,group_id,user_id,' \
     '"group".name=?),(SELECT "user".id FROM "user" WHERE "user".name=?),' \
     '(SELECT "user".id FROM "user" WHERE "user".name=?),?)'
 
+s_create_property_user = 'INSERT INTO "property_user" (property,value,' \
+    'user_id,setter_id) VALUES(?,?,(SELECT "user".id FROM "user" WHERE ' \
+    '"user".name=?),(SELECT "user".id FROM "user" WHERE "user".name=?))'
+
+s_create_property_group = 'INSERT INTO "property_group" (property,value,' \
+    'group_id,setter_id) VALUES(?,?,(SELECT "group".id FROM "group" WHERE ' \
+    '"group".name=?),(SELECT "user".id FROM "user" WHERE "user".name=?))'
+
 # Alteration
 s_set_user = 'UPDATE "user" SET gecos=IFNULL(?,gecos),password=' \
     'IFNULL(?,password) WHERE "user".name=?'
 
 s_set_group = 'UPDATE "group" SET topic=? WHERE "group".name=?'
 
-s_set_property_user = 'INSERT OR REPLACE INTO "property_user" (property,' \
-    'value,user_id,setter_id) VALUES(?,?,(SELECT "user".id FROM "user" ' \
-    'WHERE "user".name=?),(SELECT "user".id FROM "user" WHERE "user".name=?))'
+s_set_property_user = 'UPDATE "property_user" SET value=? WHERE ' \
+    '"property_user".property=? AND "property_user".user_id=(SELECT ' \
+    '"user".id FROM "user" WHERE "user".name=?)'
 
-s_set_property_group = 'INSERT OR REPLACE INTO "property_group" (property,' \
-    'value,group_id,setter_id) VALUES(?,?,(SELECT "group".id FROM "group" ' \
-    'WHERE "group".name=?),(SELECT "user".id FROM "user" WHERE ' \
-    '"user".name=?))'
+s_set_property_group = 'UPDATE "property_group" SET value=? WHERE ' \
+    '"property_group".property=? AND "property_group".group_id=(SELECT ' \
+    '"group".id FROM "group" WHERE "group".name=?)'
+
 
 # Deletion
 s_del_user = 'DELETE FROM "user" WHERE "user".name=?'

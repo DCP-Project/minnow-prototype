@@ -72,6 +72,22 @@ class ProtocolStorage:
         return self.database.modify(queries.s_create_group_acl,
                                     (acl, name, username, setter, reason))
 
+    def create_property_user(self, name, property, value=None, setter=None):
+        return self.database.modify(queries.s_create_property_user,
+                                    (property, value, name, setter))
+
+    def create_property_group(self, name, property, value=None, setter=None):
+        return self.database.modify(queries.s_create_property_group,
+                                    (property, value, name, setter))
+
+    def create_roster_user(self, name, user, alias=None, group_tag=None):
+        return self.database.modify(queries.s_create_roster_user,
+                                    (name, user, alias, group_tag))
+
+    def create_roster_group(self, name, user, alias=None, group_tag=None):
+        return self.database.modify(queries.s_create_roster_group,
+                                    (name, user, alias, group_tag))
+
     def set_user(self, name, *, gecos=None, password=None):
         return self.database.modify(queries.s_set_user,
                                     (gecos, password, name))
@@ -81,17 +97,12 @@ class ProtocolStorage:
 
     def set_property_user(self, name, property, value=None, setter=None):
         return self.database.modify(queries.s_set_property_user,
-                                    (property, value, name))
-
-    def create_property_user(self, name, property, value=None, setter=None):
-        return self.set_property_user(name, property, value, setter)
+                                    (value, property, name))
 
     def set_property_group(self, name, property, value=None, setter=None):
         return self.database.modify(queries.s_set_property_group,
-                                    (property, value, name, setter))
+                                    (value, property, name))
 
-    def create_property_group(self, name, property, value=None, setter=None):
-        return self.set_property_group(name, property, value, setter)
 
     def del_user(self, name):
         return self.database.modify(queries.s_del_user, (name,))

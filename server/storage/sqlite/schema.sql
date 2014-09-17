@@ -108,6 +108,12 @@ CREATE TABLE IF NOT EXISTS 'roster_entry_group' (
     UNIQUE(group_id, roster_id)
 );
 
+-- Triggers (try to keep as few of these as possible around)
+CREATE TRIGGER IF NOT EXISTS "user_create_trigger" AFTER INSERT ON "user"
+BEGIN
+    INSERT INTO "roster" (user_id) VALUES (NEW.user_id);
+END;
+
 CREATE TABLE IF NOT EXISTS 'version' (
     id INTEGER UNIQUE NOT NULL
 );
