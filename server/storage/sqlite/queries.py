@@ -36,6 +36,20 @@ s_get_group_property = 'SELECT "property_group".property,' \
     '"property_user".setter_id="user2".id WHERE "group".name=? AND ' \
     '"group".id="property_group".group_id'
 
+s_get_roster_user = 'SELECT "roster_entry_user".alias,' \
+    '"roster_entry_user".group_tag,"roster_entry_user".blocked,' \
+    '"target".name FROM "roster","roster_entry_user","user","user" AS ' \
+    '"target" WHERE "user".name=? AND "roster".user_id="user".id AND ' \
+    '"roster".id="roster_entry_user".roster_id AND ' \
+    '"target".id="roster_entry_user".user_id'
+
+s_get_roster_group = 'SELECT "roster_entry_group".alias,' \
+    '"roster_entry_group".group_tag,"group".name FROM "roster",' \
+    '"roster_entry_group","user","group" WHERE "user".name=? AND ' \
+    '"roster".user_id="user".id AND "roster".id=' \
+    '"roster_entry_group".roster_id AND "group".id=' \
+    '"roster_entry_group".group_id'
+
 # Creation
 s_create_user = 'INSERT INTO "user" (name,gecos,password) VALUES (?,?,?)'
 
@@ -57,6 +71,16 @@ s_create_property_group = 'INSERT INTO "property_group" (property,value,' \
     'group_id,setter_id) VALUES(?,?,(SELECT "group".id FROM "group" WHERE ' \
     '"group".name=?),(SELECT "user".id FROM "user" WHERE "user".name=?))'
 
+s_create_roster_user = 'INSERT INTO "roster_entry_user" (roster_id,user_id,' \
+    'alias,group_tag) VALUES((SELECT "roster".id FROM "roster","user" ' \
+    'WHERE "user".name=? AND "roster".user_id="user".id),(SELECT ' \
+    '"user".id FROM "user" WHERE "user".name=?),?,?)'
+
+s_create_roster_group = 'INSERT INTO "roster_entry_group" (roster_id,' \
+    'group_id,alias,group_tag) VALUES((SELECT "roster".roster_id FROM ' \
+    '"roster","user" WHERE "user".name=? AND "roster".user_id="user".id),' \
+    '(SELECT "group".id FROM "group" WHERE "group".name=?)'
+
 # Alteration
 s_set_user = 'UPDATE "user" SET gecos=IFNULL(?,gecos),password=' \
     'IFNULL(?,password) WHERE "user".name=?'
@@ -71,6 +95,14 @@ s_set_property_group = 'UPDATE "property_group" SET value=? WHERE ' \
     '"property_group".property=? AND "property_group".group_id=(SELECT ' \
     '"group".id FROM "group" WHERE "group".name=?)'
 
+s_set_roster_user = 'UPDATE "roster_entry_user" SET alias=IFNULL(?,alias),' \
+    'group_tag=IFNULL(?,group_tag),blocked=IFNULL(?,blocked) WHERE ' \
+    '"roster_entry_user".roster_id=(SELECT "user".id FROM "user" WHERE ' \
+    '"user".name=?)'
+
+s_set_roster_group = 'UPDATE "roster_entry_group" SET alias=IFNULL(?,alias),' \
+    'group_tag=IFNULL(?,group_tag) WHERE "roster_entry_group".roster_id=' \
+    '(SELECT "user".id FROM "user" WHERE "user".name=?)'
 
 # Deletion
 s_del_user = 'DELETE FROM "user" WHERE "user".name=?'
@@ -98,3 +130,15 @@ s_del_property_user = 'DELETE FROM "property_user" WHERE ' \
 s_del_property_group = 'DELETE FROM "property_group" WHERE ' \
     '"property_group".property=? AND "property_group".group_id=(SELECT ' \
     '"group".id FROM "group" WHERE "group".name=?)'
+
+s_del_roster_user = 'DELETE FROM "roster_entry_user" WHERE ' \
+    '"roster_entry_user".roster_id=(SELECT "roster".id FROM "roster",' \
+    '"user" WHERE "user".name=? AND "user".id="roster".user_id) AND ' \
+    '"roster_entry_user".user_id=(SELECT "user".id FROM "user" WHERE ' \
+    '"user".name=?)'
+
+s_del_roster_group = 'DELETE FROM "roster_entry_group" WHERE ' \
+    '"roster_entry_group".roster_id=(SELECT "roster".id FROM "roster",' \
+    '"user" WHERE "user".name=? AND "user".id="roster".user_id) AND ' \
+    '"roster_entry_group".group_id=(SELECT "group".id FROM "group" WHERE ' \
+    '"group".name=?)'
