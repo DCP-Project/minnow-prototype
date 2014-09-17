@@ -143,3 +143,13 @@ class PropertyInvalidError(PropertyError):
 class PropertyValueError(PropertyError):
     "Property has a bad value"
     pass
+
+
+class RosterError(DCPError):
+    "Base error for all roster stuff"
+    pass
+
+
+class RosterDoesNotExistError(RosterError):
+    "Roster doesn't exist"
+    pass
