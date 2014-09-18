@@ -56,10 +56,18 @@ class Frame(BaseFrame):
         if len(text) < 10:
             raise ParserIncompleteError('Incomplete frame')
 
+        if text[-2:] == cls.terminator:
+            text = text[:-2]
+
         # Grab the llen
         llen = int.from_bytes(text[:2], 'big')
         if llen > MAXFRAME:
             raise ParserSizeError('Frame is too large for the wire')
+
+        llen -= 2
+
+        if llen != len(text):
+            raise ParserSizeError('Junk size received')
 
         try:
             # Grab our iterator for the frame
@@ -67,7 +75,6 @@ class Frame(BaseFrame):
         except Exception as e:
             raise ParserError('Couldn\'t decode text: ' + str(e)) from e
 
-        llen = len(text) - 1
         frame_iter = islice(text, 3, llen)
         llen -= 3
 
@@ -151,7 +158,6 @@ class JSONFrame(BaseFrame):
             raise ParserSizeError('Frame is too large')
 
         text = text.decode('utf-8', 'replace')
-        text = text[:-1]
 
         try:
             load = json.loads(text)

@@ -95,27 +95,26 @@ class DCPBaseProto(asyncio.Protocol):
         self.transport = None
 
     def data_received(self, data):
-        data = self.__buf + data
+        data = (self.__buf + data).split(self.frame.terminator)
+        rem = data.pop()
+        self.__buf = rem
 
-        if not data.endswith(self.frame.terminator):
-            data, sep, self.__buf = data.rpartition(self.frame.terminator)
-            if sep:
-                data += sep
-            else:
-                self.__buf = data
-                return
+        if not data:
+            if len(self.__buf) > parser.MAXFRAME:
+                self.error('*', 'Sent an excessively large frame')
 
-        data = data.split(self.frame.terminator)[:-1]
+            return
+
         for line in data:
+            if globals().get('debug_frame'):
+                logger.debug('Got frame: %r', line)
+
             try:
                 frame = self.frame.parse(line)
             except ParserError as e:
                 logger.exception('Parser failure')
                 self.error('*', 'Parser failure', {'cause': [str(e)]})
                 break
-
-            if globals().get('debug_frame'):
-                logger.debug('Got frame: %r', frame)
 
             asyncio.async(self.recvq.put(frame))
 

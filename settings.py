@@ -35,7 +35,7 @@ store_backend_args = ('data/store.db',)
 log_level = logging.DEBUG
 
 # Enable frame debugging (client authors)
-debug_frame = False
+debug_frame = True
 
 ### Performance options
 
