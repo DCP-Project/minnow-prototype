@@ -114,13 +114,15 @@ class DCPBaseProto(asyncio.Protocol):
                 self.error('*', 'Parser failure', {'cause': [str(e)]})
                 break
 
+            if globals().get('debug_frame'):
+                logger.debug('Got frame: %r', frame)
+
             asyncio.async(self.recvq.put(frame))
 
     @asyncio.coroutine
     def process(self):
         while True:
             line = (yield from self.recvq.get())
-            print('Line received from the wire', line)
             try:
                 yield from self.server._call_func(self, line)
             except Exception as e:

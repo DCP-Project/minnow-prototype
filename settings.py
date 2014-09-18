@@ -34,6 +34,9 @@ store_backend_args = ('data/store.db',)
 # Debug level (set to debug, please)
 log_level = logging.DEBUG
 
+# Enable frame debugging (client authors)
+debug_frame = False
+
 ### Performance options
 
 # Maximum users to keep in the offline cache
