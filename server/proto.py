@@ -113,13 +113,13 @@ class DCPBaseProto(asyncio.Protocol):
                 self.error('*', 'Parser failure', {'cause': [str(e)]})
                 break
 
-            asyncio.async(self.line_queue.put(frame))
+            asyncio.async(self.recvq.put(frame))
 
     @asyncio.coroutine
     def process(self):
         while True:
             try:
-                line = (yield from self.line_queue.get())
+                line = (yield from self.recvq.get())
             except (UserError, GroupError) as e:
                 logger.warn('Possible bug hit! (Exception below)')
                 traceback.print_exc()
