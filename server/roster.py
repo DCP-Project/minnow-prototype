@@ -45,7 +45,7 @@ class Roster:
     def _add_nocommit(self, user, target, alias=None, group_tag=None,
                       blocked=False):
         if not hasattr(target, 'name'):
-            target = server.get_any_target(target)
+            target = (yield from server.get_any_target(target))
 
         if not target:
             return (False, TargetDoesNotExistError(target))
@@ -83,9 +83,8 @@ class Roster:
 
     def set(self, target, **kwargs):
         if not hasattr(target, 'name'):
-            target = server.get_any_target(target)
+            target = (yield from server.get_any_target(target))
 
-        target = server.get_any_target(target)
         if not target:
             raise TargetDoesNotExistError()
 

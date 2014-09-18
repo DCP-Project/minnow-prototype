@@ -27,7 +27,7 @@ class PropertySet(Command):
                          {'target': [line.target], 'property': property})
             return
 
-        target = server.get_any_target(line.target)
+        target = (yield from server.get_any_target(line.target))
         if not target:
             server.error(user, line.command, 'Invalid target', False,
                          {'target': [line.target], 'property': property})
@@ -72,7 +72,7 @@ class PropertyDel(Command):
                          {'target': [line.target], 'property': property})
             return
 
-        target = server.get_any_target(line.target)
+        target = (yield from server.get_any_target(line.target))
         if not target:
             server.error(user, line.command, 'Invalid target', False,
                          {'target': [line.target], 'property': property})
@@ -107,7 +107,7 @@ class PropertyList(Command):
                          {'target': [line.target]})
             return
 
-        target = server.get_any_target(line.target)
+        target = (yield from server.get_any_target(line.target))
         if not target:
             server.error(user, line.command, 'Invalid target', False,
                          {'target': [line.target], 'property': property})

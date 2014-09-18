@@ -33,8 +33,8 @@ class Signon(Command):
             return
 
         # Retrieve the user info
-        user = server.get_any_target(name)
-        if user is None:
+        user = (yield from server.get_any_target(name))
+        if not user:
             server.error(proto, line.command, 'You are not registered with '
                          'the server', False, {'handle': [name]})
             return

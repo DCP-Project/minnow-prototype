@@ -98,6 +98,7 @@ class DCPServer:
                 self.error(proto, line.command, str(e))
 
     def user_enter(self, proto, user, options):
+        print(proto)
         proto.user = self.online_users[user.name.lower()] = user
         user.sessions.add(proto)
 

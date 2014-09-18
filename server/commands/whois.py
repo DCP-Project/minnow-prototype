@@ -19,7 +19,7 @@ class Whois(Command):
             server.error(user, line.command, 'No valid target', False)
             return
 
-        t_user = server.get_any_target(target)
+        t_user = (yield from server.get_any_target(target))
 
         kval = {
             'handle': [t_user.name],
