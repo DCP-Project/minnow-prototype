@@ -9,7 +9,7 @@ import sqlite3
 import queue
 import pathlib
 
-from lock import Lock
+from threading import Lock
 from server.storage.sqlite import queries, atomic
 from logging import getLogger
 
