@@ -5,50 +5,53 @@
 # 2, as published by Sam Hocevar. See the LICENSE file for more details.
 
 # Retrieval
-s_get_user = 'SELECT "user".* FROM "user" WHERE "name"=?'
+s_get_user = 'SELECT "user".name,"user".password,"user".gecos,' \
+    '"user".timestamp,"user".avatar FROM "user" WHERE "name"=? ORDER BY ' \
+    '"user".name'
 
 s_get_user_acl = 'SELECT "acl_user".acl,"acl_user".timestamp,"user2".name ' \
     'FROM "acl_user","user" LEFT OUTER JOIN user AS user2 ON ' \
     '"acl_user".setter_id="user2".id WHERE "user".name=? AND ' \
-    '"acl_user".user_id="user".id '
+    '"acl_user".user_id="user".id ORDER BY "acl_user".acl'
 
 s_get_user_property = 'SELECT "property_user".property' \
     '"property_user".value,"property_user".timestamp,"user2".name AS ' \
     'setter FROM "property_user","user" LEFT OUTER JOIN "user" AS "user2" ' \
     'ON "property_user".setter_id="user2".id WHERE "user".name=? AND ' \
-    '"property_user".user_id="user".id'
+    '"property_user".user_id="user".id ORDER BY "property_user".property'
 
-s_get_group = 'SELECT "group".* FROM "group" WHERE "name"=?'
+s_get_user_roster = 'SELECT "roster_entry_user".alias,' \
+    '"roster_entry_user".group_tag,"roster_entry_user".blocked,' \
+    '"target".name FROM "roster","roster_entry_user","user","user" AS ' \
+    '"target" WHERE "user".name=? AND "roster".user_id="user".id AND ' \
+    '"roster".id="roster_entry_user".roster_id AND "target".id=' \
+    '"roster_entry_user".user_id ORDER BY "target".name'
+
+s_get_group = 'SELECT "group".name,"group".topic,"group".timestamp FROM ' \
+    '"group" WHERE "name"=?'
 
 s_get_group_acl = 'SELECT "acl_group".acl,"acl_group".timestamp,"user".name ' \
     'FROM "acl_group","group" LEFT OUTER JOIN "user" ' \
     'ON "acl_group".user_id="user".id WHERE "group".name=?'
 
-s_get_group_acl_user = 'SELECT "acl_group".*,"user2".name FROM ' \
-    '"acl_group","user" LEFT OUTER JOIN "user" as "user2" ON ' \
-    '"acl_user".setter_id="user2".id WHERE "group".name=? AND ' \
-    '"user".name=? AND "group".id="acl_group".group_id AND ' \
-    '"user".id="acl_user".user_id'
+s_get_group_acl_user = 'SELECT "acl_group".acl,"acl_group".timestamp",' \
+    '"acl_group".reason,"user2".name FROM "acl_group","user" LEFT OUTER ' \
+    'JOIN "user" as "user2" ON "acl_user".setter_id="user2".id WHERE ' \
+    '"group".name=? AND "user".name=? AND "group".id="acl_group".group_id ' \
+    'AND "user".id="acl_user".user_id ORDER BY "acl_group".acl'
 
 s_get_group_property = 'SELECT "property_group".property,' \
     '"property_group".value,"property_user".timestamp,"user".name AS ' \
     'setter FROM "property_group","group" LEFT OUTER JOIN "user" ON ' \
     '"property_user".setter_id="user2".id WHERE "group".name=? AND ' \
-    '"group".id="property_group".group_id'
+    '"group".id="property_group".group_id ORDER BY "property_group".property'
 
-s_get_roster_user = 'SELECT "roster_entry_user".alias,' \
-    '"roster_entry_user".group_tag,"roster_entry_user".blocked,' \
-    '"target".name FROM "roster","roster_entry_user","user","user" AS ' \
-    '"target" WHERE "user".name=? AND "roster".user_id="user".id AND ' \
-    '"roster".id="roster_entry_user".roster_id AND ' \
-    '"target".id="roster_entry_user".user_id'
-
-s_get_roster_group = 'SELECT "roster_entry_group".alias,' \
+s_get_group_roster = 'SELECT "roster_entry_group".alias,' \
     '"roster_entry_group".group_tag,"group".name FROM "roster",' \
     '"roster_entry_group","user","group" WHERE "user".name=? AND ' \
     '"roster".user_id="user".id AND "roster".id=' \
     '"roster_entry_group".roster_id AND "group".id=' \
-    '"roster_entry_group".group_id'
+    '"roster_entry_group".group_id ORDER BY "group".name'
 
 # Creation
 s_create_user = 'INSERT INTO "user" (name,gecos,password) VALUES (?,?,?)'
