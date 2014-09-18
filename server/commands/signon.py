@@ -50,7 +50,7 @@ class Signon(Command):
 
         password = line.kval.get('password')[0]
 
-        hash = crypt.crypt(line.kval.get(password, user.password))
+        hash = crypt.crypt(password, user.password)
         if not hmac.compare_digest(hash, user.password):
             server.error(proto, line.command, 'Invalid password')
             return

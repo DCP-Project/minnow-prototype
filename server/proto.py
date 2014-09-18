@@ -105,9 +105,10 @@ class DCPBaseProto(asyncio.Protocol):
                 self.__buf = data
                 return
 
-        for line in data.split(self.frame.terminator):
+        data = data.split(self.frame.terminator)[:-1]
+        for line in data:
             try:
-                frame = self.frame.parse(data)
+                frame = self.frame.parse(line)
             except ParserError as e:
                 logger.exception('Parser failure')
                 self.error('*', 'Parser failure', {'cause': [str(e)]})
@@ -119,16 +120,16 @@ class DCPBaseProto(asyncio.Protocol):
     def process(self):
         while True:
             line = (yield from self.recvq.get())
+            print('Line received from the wire', line)
             try:
                 yield from self.server._call_func(self, line)
-            except (UserError, GroupError) as e:
-                logger.warn('Possible bug hit! (Exception below)')
-                traceback.print_exc()
-                self.error(line.command, str(e), False)
             except Exception as e:
                 logger.exception('Bug hit! (Exception below)')
                 self.error(line.command, 'Internal server error (this isn\'t '
                            'your fault)')
+                break
+
+            if self.transport is None:
                 break
 
     @staticmethod
@@ -296,6 +297,7 @@ class DCPBaseProto(asyncio.Protocol):
 
         if fatal:
             self.transport.close()
+            self.transport = None
 
     def call_cancel(self, name):
         callback = self.callbacks.pop(name, None)

@@ -94,9 +94,9 @@ class DCPServer:
 
         try:
             return (yield from function(*args))
-        except CommandNotImplementedError as e:
+        except CommandError as e:
             if proto:
-                self.error(proto, line.command, str(e))
+                self.error(proto, line.command, str(e), False)
 
     @asyncio.coroutine
     def user_enter(self, proto, user, options):
@@ -206,7 +206,7 @@ class DCPServer:
             return
 
         t = str(round(time.time()))
-        proto.send(self, proto, 'ping', {'time': [t]})
+        proto.send(self, None, 'ping', {'time': [t]})
 
         proto.timeout = True
 
@@ -260,7 +260,6 @@ class DCPServer:
                          prop_set, g_data['timestamp'])
         else:
             u_data = (yield from self.proto_store.get_user(target))
-            print('u_data for target', target, u_data)
             if u_data is None:
                 return None
 

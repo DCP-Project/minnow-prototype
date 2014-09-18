@@ -53,7 +53,7 @@ class Frame(BaseFrame):
 
     @classmethod
     def parse(cls, text):
-        if not text.endswith(cls.terminator) or len(text) < 10:
+        if len(text) < 10:
             raise ParserIncompleteError('Incomplete frame')
 
         # Grab the llen

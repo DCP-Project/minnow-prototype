@@ -97,12 +97,12 @@ class CommandNotImplementedError(CommandError, NotImplementedError):
     pass
 
 
-class RegisteredOnlyError(CommandNotImplementedError):
+class RegisteredOnlyError(CommandError):
     "Command can only be executed by registered users"
     pass
 
 
-class UnregisteredOnlyError(CommandNotImplementedError):
+class UnregisteredOnlyError(CommandError):
     "Command can only be executed by unregistered users"
     pass
 
