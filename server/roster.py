@@ -36,14 +36,10 @@ class RosterEntryGroup:
 
 
 class Roster:
-    def __init__(self, server, user, member_user=None, member_group=None):
+    def __init__(self, server, user, entries=None):
         self.server = server
         self.proto_store = server.proto_store
-
-        user = getattr(user, 'name', user).lower()
-
-        self.user = user
-
+        self.user = user.lower()
         self.roster_map = dict()
 
     def _add_nocommit(self, user, target, alias=None, group_tag=None,
@@ -81,7 +77,9 @@ class Roster:
         else:
             function = self.proto_store.create_roster_user
 
-        asyncio.async(function(user, target.name.lower(), alias, group_tag))
+        target = getattr(target, 'name', target).lower()
+
+        asyncio.async(function(user, target, alias, group_tag))
 
     def set(self, target, **kwargs):
         if not hasattr(target, 'name'):

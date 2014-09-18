@@ -11,6 +11,7 @@ from time import time
 
 from server.property import UserPropertySet
 from server.acl import UserACLSet
+from server.roster import Roster
 
 
 class User:
@@ -28,8 +29,11 @@ class User:
         if property is None:
             property = UserPropertySet(server, name)
 
-        self.property = property  # TODO
-        self.roster = roster  # TODO
+        if roster is None:
+            roster = Roster(server, name)
+
+        self.property = property
+        self.roster = roster
         self.options = options  # TODO
 
         self.sessions = set()
