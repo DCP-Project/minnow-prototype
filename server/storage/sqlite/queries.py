@@ -20,7 +20,7 @@ s_get_user_property = 'SELECT "property_user".property,' \
     'ON "property_user".setter_id="user2".id WHERE "user".name=? AND ' \
     '"property_user".user_id="user".id ORDER BY "property_user".property'
 
-s_get_user_roster = 'SELECT "roster_entry_user".alias,' \
+s_get_roster_user = 'SELECT "roster_entry_user".alias,' \
     '"roster_entry_user".group_tag,"roster_entry_user".blocked,' \
     '"target".name FROM "roster","roster_entry_user","user","user" AS ' \
     '"target" WHERE "user".name=? AND "roster".user_id="user".id AND ' \
@@ -46,7 +46,7 @@ s_get_group_property = 'SELECT "property_group".property,' \
     '"property_user".setter_id="user2".id WHERE "group".name=? AND ' \
     '"group".id="property_group".group_id ORDER BY "property_group".property'
 
-s_get_group_roster = 'SELECT "roster_entry_group".alias,' \
+s_get_roster_group = 'SELECT "roster_entry_group".alias,' \
     '"roster_entry_group".group_tag,"group".name FROM "roster",' \
     '"roster_entry_group","user","group" WHERE "user".name=? AND ' \
     '"roster".user_id="user".id AND "roster".id=' \

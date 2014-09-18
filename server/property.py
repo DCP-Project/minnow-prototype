@@ -34,7 +34,7 @@ class Property:
 class BasePropertySet:
     __slots__ = ['server', 'prop_map']
 
-    def __init__(self, server, prop_data=None):
+    def __init__(self, server, prop_data=[]):
         # NOTE - we use prop_data here separate instead of getting it ourselves
         # because __init__ being a coroutine is probably dodgy.
         self.server = server

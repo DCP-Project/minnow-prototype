@@ -10,7 +10,7 @@ from time import time
 
 from server.property import UserPropertySet
 from server.acl import UserACLSet
-from server.roster import Roster
+from server.roster import RosterSet
 
 
 class User:
@@ -30,7 +30,7 @@ class User:
             property = UserPropertySet(server, name)
 
         if roster is None:
-            roster = Roster(server, name)
+            roster = RosterSet(server, name)
 
         self.property = property
         self.roster = roster

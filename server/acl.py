@@ -68,7 +68,7 @@ class UserACLSet:
 
     __slots__ = ['server', 'user', 'acl_map']
 
-    def __init__(self, server, user, acl_data=None):
+    def __init__(self, server, user, acl_data=[]):
         # NOTE - we use acl_data here separate instead of getting it ourselves
         # because __init__ being a coroutine is probably dodgy.
         self.server = server

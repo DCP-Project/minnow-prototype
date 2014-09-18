@@ -8,18 +8,16 @@ import enum
 import time
 import asyncio
 import re
-import inspect
-import random
 import functools
 import crypt
 import logging
-import traceback
 
 import server.command as command
 import server.parser as parser
 
 from server.acl import UserACLSet, GroupACLSet
 from server.property import UserPropertySet, GroupPropertySet
+from server.roster import RosterSet
 from server.user import User
 from server.group import Group
 from server.storage.asyncstorage import AsyncStorage
@@ -270,5 +268,12 @@ class DCPServer:
                 target))
             prop_set = UserPropertySet(self, target, prop_data)
 
+            roster_data_u = (yield from self.proto_store.get_roster_user(
+                target))
+            roster_data_g = (yield from self.proto_store.get_roster_group(
+                target))
+
+            roster_set = RosterSet(self, target, roster_data_u, roster_data_g)
+
             return User(self, target, u_data['gecos'], u_data['password'],
-                        acl_set, prop_set)
+                        acl_set, prop_set, roster_set)

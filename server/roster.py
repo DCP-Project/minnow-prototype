@@ -35,14 +35,24 @@ class RosterEntryGroup:
         self.group_tag = group_tag
 
 
-class Roster:
-    def __init__(self, server, user, entries=None):
+class RosterSet:
+    def __init__(self, server, user, entries_u=[], entries_g=[]):
         self.server = server
         self.proto_store = server.proto_store
         self.user = user.lower()
         self.roster_map = dict()
 
-    def _add_nocommit(self, user, target, alias=None, group_tag=None,
+        if entries_u:
+            for entry in entries_u:
+                self._add_nocommit(entry['name'], entry['alias'],
+                                   entry['group_tag'], entry['blocked'])
+
+        if entries_g:
+            for entry in entries_g:
+                self._add_nocommit(entry['name'], entry['alias'],
+                                   entry['group_tag'])
+
+    def _add_nocommit(self, target, alias=None, group_tag=None,
                       blocked=False):
         if not hasattr(target, 'name'):
             target = (yield from server.get_any_target(target))
@@ -50,16 +60,14 @@ class Roster:
         if not target:
             return (False, TargetDoesNotExistError(target))
 
-        user = getattr(user, 'name', user)
-
         tname = target.name.lower()
 
         if tname[0] == '#':
             inst = RosterEntryGroup
-            args = (user, target, user, self, alias, group_tag)
+            args = (self.user, target, alias, group_tag)
         else:
             inst = RosterEntryUser
-            args = (user, target, self, alias, group_tag, blocked)
+            args = (self.user, target, alias, group_tag, blocked)
 
         if target in self.roster_map:
             return (False, TargetExistsError())
