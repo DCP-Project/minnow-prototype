@@ -108,14 +108,12 @@ CREATE TABLE IF NOT EXISTS 'roster_entry_group' (
     UNIQUE(group_id, roster_id)
 );
 
--- Triggers (try to keep as few of these as possible around)
-CREATE TRIGGER IF NOT EXISTS "user_create_trigger" AFTER INSERT ON "user"
-BEGIN
-    INSERT INTO "roster" (user_id) VALUES (NEW.user_id);
-END;
+-- Ugh I botched updates. :(
+DROP TABLE IF EXISTS 'version';
 
 CREATE TABLE IF NOT EXISTS 'version' (
-    id INTEGER UNIQUE NOT NULL
+    id INTEGER PRIMARY KEY,
+    version INTEGER UNIQUE DEFAULT (1)
 );
 
-INSERT OR REPLACE INTO 'version' VALUES (3);
+INSERT INTO 'version' VALUES (0, 1) ON CONFLICT IGNORE;
