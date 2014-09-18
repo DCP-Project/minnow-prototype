@@ -260,8 +260,6 @@ class DCPBaseProto(asyncio.Protocol):
                 # Send what we have, replace kval_cur
                 self.send(source, target, command, kval_cur)
 
-                print(kval_cur)
-
                 kval_cur.clear()
 
             for k, v in kval_next.items():
@@ -384,14 +382,14 @@ class WebSocketsWrapper:
     It really sucks but it's the best way atm."""
 
     def connection_made(self, transport):
-        print("Connection made", transport)
+        logger.info("Connection made", transport)
         self.transport = transport
 
     def connection_closed(self, exc):
-        print("Connection closed")
+        logger.info("Connection closed")
 
     def data_received(self, data):
-        print("Got some data!", data)
+        logger.info("Got some data!", data)
         self.transport.write(data)
 
     def __call__(self, websocket, path):

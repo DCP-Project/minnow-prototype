@@ -19,6 +19,7 @@ import server.command as command
 import server.parser as parser
 
 from server.acl import UserACLSet, GroupACLSet
+from server.property import UserPropertySet, GroupPropertySet
 from server.user import User
 from server.group import Group
 from server.storage.asyncstorage import AsyncStorage
@@ -124,7 +125,7 @@ class DCPServer:
         self.user_motd(user, proto)
 
         # Ping timeout stuff
-        user.timeout = False
+        proto.timeout = False
         self.ping_timeout(proto)
 
     def user_exit(self, user, proto, reason=None):
@@ -186,7 +187,7 @@ class DCPServer:
         self.get_any_target.cache_clear()
 
         # Poop out a new user object
-        return User(self, name, gecos)
+        return User(self, name, gecos, password)
 
     def user_motd(self, user, proto):
         if not self.motd:
@@ -207,7 +208,7 @@ class DCPServer:
         t = str(round(time.time()))
         proto.send(self, proto, 'ping', {'time': [t]})
 
-        user.timeout = True
+        proto.timeout = True
 
         proto.call_ish('ping', 45, 60, self.ping_timeout, proto)
 
@@ -259,6 +260,7 @@ class DCPServer:
                          prop_set, g_data['timestamp'])
         else:
             u_data = (yield from self.proto_store.get_user(target))
+            print('u_data for target', target, u_data)
             if u_data is None:
                 return None
 
@@ -269,4 +271,5 @@ class DCPServer:
                 target))
             prop_set = UserPropertySet(self, target, prop_data)
 
-            return User(self, target, u_data['gecos'], acl_set, prop_set)
+            return User(self, target, u_data['gecos'], u_data['password'],
+                        acl_set, prop_set)

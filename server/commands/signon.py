@@ -33,7 +33,7 @@ class Signon(Command):
             return
 
         # Retrieve the user info
-        user = (yield from server.get_any_target(name))
+        user = (yield from server.get_any_target(name.lower()))
         if not user:
             server.error(proto, line.command, 'You are not registered with '
                          'the server', False, {'handle': [name]})
@@ -49,8 +49,9 @@ class Signon(Command):
             return
 
         password = line.kval.get('password')[0]
-        h = crypt.crypt(line.kval.get(password, uinfo['password']))
-        if not hmac.compare_digest(h, uinfo['password']):
+
+        hash = crypt.crypt(line.kval.get(password, user.password))
+        if not hmac.compare_digest(hash, user.password):
             server.error(proto, line.command, 'Invalid password')
             return
 

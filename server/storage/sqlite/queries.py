@@ -14,7 +14,7 @@ s_get_user_acl = 'SELECT "acl_user".acl,"acl_user".timestamp,"user2".name ' \
     '"acl_user".setter_id="user2".id WHERE "user".name=? AND ' \
     '"acl_user".user_id="user".id ORDER BY "acl_user".acl'
 
-s_get_user_property = 'SELECT "property_user".property' \
+s_get_user_property = 'SELECT "property_user".property,' \
     '"property_user".value,"property_user".timestamp,"user2".name AS ' \
     'setter FROM "property_user","user" LEFT OUTER JOIN "user" AS "user2" ' \
     'ON "property_user".setter_id="user2".id WHERE "user".name=? AND ' \

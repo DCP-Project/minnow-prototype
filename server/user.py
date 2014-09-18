@@ -5,7 +5,6 @@
 # 2, as published by Sam Hocevar. See the LICENSE file for more details.
 
 import asyncio
-import crypt
 
 from time import time
 
@@ -15,11 +14,12 @@ from server.roster import Roster
 
 
 class User:
-    def __init__(self, server, name, gecos, acl=None, property=None,
+    def __init__(self, server, name, gecos, password, acl=None, property=None,
                  roster=None, options=[]):
         self.server = server
         self.name = name
         self._gecos = gecos
+        self._password = password
 
         if acl is None:
             self.acl = UserACLSet(server, name)
@@ -53,13 +53,11 @@ class User:
 
     @property
     def password(self):
-        ret = (yield from self.server.get_user(self.name.lower()))['password']
-        return ret
+        return self._password
 
     @password.setter
     def password(self, value):
-        if not value.startswith('$'):
-            value = crypt.crypt(value, crypt.mksalt())
+        self._password = value
 
         asyncio.async(self.server.proto_store.set_user(self.name.lower(),
                       password=value))
