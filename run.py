@@ -70,7 +70,7 @@ if listen_json:
 
 logger.info('Unix control socket at %r', unix_path)
 
-if websockets is not None:
+if listen_websockets is not None:
     logger.info('Serving WebSockets on %r', listen_websockets)
 
 try:

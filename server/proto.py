@@ -186,10 +186,10 @@ class DCPBaseProto(asyncio.Protocol):
                 kval_k[k] = v
             else:
                 kval_first[k] = v
+        
+        kval_first['multipart'] = keys
 
         if use_size:
-            kval_first['multipart'] = keys
-
             # Length of the pieces
             # We will send each multipart key at once, til its all sent
             # If it should/must be sent separate, tough (for now).
