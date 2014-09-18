@@ -38,7 +38,7 @@ class Signon(Command):
             server.error(proto, line.command, 'You are not registered with '
                          'the server', False, {'handle': [name]})
             return
-        elif user.proto:
+        elif len(user.sessions):
             # TODO - burst all state to the user
             server.error(proto, line.command, 'No multiple users at the '
                          'moment', True, {'handle': [name]})

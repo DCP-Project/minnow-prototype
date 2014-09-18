@@ -118,8 +118,9 @@ class DCPBaseProto(asyncio.Protocol):
     @asyncio.coroutine
     def process(self):
         while True:
+            line = (yield from self.recvq.get())
             try:
-                line = (yield from self.recvq.get())
+                yield from self.server._call_func(self, line)
             except (UserError, GroupError) as e:
                 logger.warn('Possible bug hit! (Exception below)')
                 traceback.print_exc()
@@ -153,7 +154,6 @@ class DCPBaseProto(asyncio.Protocol):
             kval = dict()
 
         frame = self.frame(source, target, command, kval)
-        print('Sending frame', bytes(frame))
         self.transport.write(bytes(frame))
 
     def send_multipart(self, source, target, command, keys=list(), kval=None,
