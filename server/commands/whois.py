@@ -19,7 +19,7 @@ class Whois(Command):
             server.error(user, line.command, 'No valid target', False)
             return
 
-        t_user = server.get_any_target(target)
+        t_user = (yield from server.get_any_target(target))
 
         kval = {
             'handle': [t_user.name],
@@ -29,7 +29,7 @@ class Whois(Command):
         if len(t_user.sessions):
             kval['online'] = ['*']
 
-        if user.acl.has_acl(acl.UserACLValues.user_auspex):
+        if user.acl.has_acl('user:auspex'):
             ip = []
             host = []
             for p in user.sessions:
@@ -43,8 +43,8 @@ class Whois(Command):
             })
 
         if t_user.groups:
-            group_prop = property.GroupPropertyValues.private
-            user_acl = property.UserPropertyValues.user_auspex
+            group_prop = 'private'
+            user_acl = 'user:auspex'
             kval['groups'] = [group for group in user.groups if not
                               (group_prop in group.property and not user_acl in
                                user.acl)]

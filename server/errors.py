@@ -9,6 +9,20 @@ class DCPError(Exception):
     pass
 
 
+class TargetError(DCPError):
+    "Problems with a target"
+    pass
+
+
+class TargetExistsError(DCPError):
+    "Target exists"
+    pass
+
+class TargetDoesNotExistError(TargetError):
+    "Target doesn't exist"
+    pass
+
+
 class ParserError(DCPError):
     "Base error for all parser errors"
     pass
@@ -53,6 +67,11 @@ class UserError(DCPError):
     pass
 
 
+class UserDoesNotExistError(UserError):
+    "User doesn't exist"
+    pass
+
+
 class GroupError(DCPError):
     "Base error for all group-related doodads"
     pass
@@ -78,12 +97,12 @@ class CommandNotImplementedError(CommandError, NotImplementedError):
     pass
 
 
-class RegisteredOnlyError(CommandNotImplementedError):
+class RegisteredOnlyError(CommandError):
     "Command can only be executed by registered users"
     pass
 
 
-class UnregisteredOnlyError(CommandNotImplementedError):
+class UnregisteredOnlyError(CommandError):
     "Command can only be executed by unregistered users"
     pass
 
@@ -110,6 +129,11 @@ class ACLDoesNotExistError(ACLError):
     pass
 
 
+class ACLValueError(ACLError):
+    "Invalid ACL"
+    pass
+
+
 class StorageError(DCPError):
     "Storage backend related error"
     pass
@@ -117,4 +141,39 @@ class StorageError(DCPError):
 
 class StorageBackendNotFoundError(StorageError):
     "Could not find given storage backend"
+    pass
+
+
+class PropertyError(DCPError):
+    "Base error for property errors"
+    pass
+
+
+class PropertyDoesNotExistError(PropertyError):
+    "Property doesn't exist"
+    pass
+
+
+class PropertyInvalidError(PropertyError):
+    "Property is invalid"
+    pass
+
+
+class PropertyValueError(PropertyError):
+    "Property has a bad value"
+    pass
+
+
+class RosterError(DCPError):
+    "Base error for all roster stuff"
+    pass
+
+
+class RosterDoesNotExistError(RosterError):
+    "Roster doesn't exist"
+    pass
+
+
+class RosterAttributeError(RosterError):
+    "Problem with a value passed to roster stuff"
     pass

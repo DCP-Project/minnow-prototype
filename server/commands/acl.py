@@ -7,16 +7,16 @@
 import asyncio
 
 from server.command import Command, register
-from server.acl import UserACLValues, GroupACLValues
 
 
 class ACLBase:
     @asyncio.coroutine
-    def has_grant_group(self, server, user, gtarget, acl):
+    @staticmethod
+    def has_grant_group(server, user, gtarget, acl):
         if user not in gtarget.users:
             return (False, 'Must be in group to alter ACL\'s in it')
 
-        check_grant = ['grant', 'grant:*']
+        check_grant = ['grant:*']
         check_grant.extend('grant:' + a for a in acl)
         if gtarget.acl.has_any(check_grant):
             return (True, None)
@@ -27,7 +27,8 @@ class ACLBase:
         return (True, None)
 
     @asyncio.coroutine
-    def has_grant_user(self, server, user, utarget, acl):
+    @staticmethod
+    def has_grant_user(server, user, utarget, acl):
         check_grant = ['user:grant']
         check_grant.extend(acl)
         if not gtarget.acl.has_acl_all(check_grant):
@@ -36,14 +37,19 @@ class ACLBase:
         return (True, None)
 
     @asyncio.coroutine
-    def has_grant(self, server, user, gtarget, utarget, acl):
+    @staticmethod
+    def has_grant(server, user, gtarget, utarget, acl):
         target = getattr(target, 'name', target)
 
+        if isinstance(acl, str):
+            acl = (acl,)
+
         if target[0] == '#':
-            ret = (yield from self.has_grant_group(server, user, gtarget,
-                                                   acl))
+            ret = (yield from ACLBase.has_grant_group(server, user, gtarget,
+                                                      acl))
         else:
-            ret = (yield from self.has_grant_user(server, user, utarget, acl))
+            ret = (yield from ACLBase.has_grant_user(server, user, utarget,
+                                                     acl))
 
         return ret
 
@@ -82,11 +88,6 @@ class ACLBase:
                          {'target': [target], 'acl': acl})
             return (None, None)
         else:
-            if acl not in UserACLValues:
-                server.error(user, line.command, 'Invalid ACL', False,
-                             {'target': [target], 'acl': acl})
-                return (None, None)
-
             gtarget = None
             utarget = (yield from server.get_any_target(target))
 
@@ -123,8 +124,9 @@ class ACLSet(ACLBase, Command):
                 gtarget.acl.add(utarget, acl, user, reason)
             else:
                 utarget.acl.add(acl, user, reason)
-        except ACLExistsError as e:
-            server.error(user, line.command, 'ACL exists', False, kwds)
+        except ACLError as e:
+            error = 'Error adding ACL: {}'.format(str(e))
+            server.error(user, line.command, error, False, kwds)
             return
 
         # Report to the target if they're online
@@ -156,8 +158,9 @@ class ACLSet(ACLBase, Command):
                 gtarget.acl.add(utarget, acl, proto, reason)
             else:
                 utarget.acl.add(acl, proto, reason)
-        except ACLExistsError as e:
-            server.error(proto, line.command, 'ACL exists', False, kwds)
+        except ACLError as e:
+            error = 'Error adding ACL: {}'.format(str(e))
+            server.error(user, line.command, error, False, kwds)
             return
 
         # Report to the target if they're online
@@ -198,8 +201,9 @@ class ACLDel(ACLBase, Command):
                 gtarget.acl.delete(utarget, acl)
             else:
                 utarget.acl.delete(acl)
-        except ACLDoesNotExistError as e:
-            server.error(user, line.command, 'ACL does not exist', False, kwds)
+        except ACLError as e:
+            error = 'Error deleting ACL: {}'.format(str(e))
+            server.error(user, line.command, error, False, kwds)
             return
 
         # Report to the target if they're online
@@ -233,8 +237,9 @@ class ACLDel(ACLBase, Command):
                 gtarget.acl.delete(utarget, acl)
             else:
                 utarget.acl.delete(acl)
-        except ACLDoesNotExistError as e:
-            server.error(proto, line.command, 'ACL does not exist', False, kwds)
+        except ACLError as e:
+            error = 'Error deleting ACL: {}'.format(str(e))
+            server.error(user, line.command, error, False, kwds)
             return
 
         # Report to the target if they're online
@@ -245,35 +250,8 @@ class ACLDel(ACLBase, Command):
 
         proto.send(server, None, line.command, kwds)
 
+
 class ACLList(ACLBase, Command):
-    @staticmethod
-    def split_acl(data):
-        acl_entry = []
-        acl_time = []
-        acl_setter = []
-
-        # Split out the ACL info
-        for entry in data:
-            acl = entry['acl']
-            time = entry['timestamp']
-            setter = entry['setter']
-
-            if not acl:
-                # TODO warning
-                continue
-
-            if time is None:
-                time = 0
-
-            if setter is None:
-                setter = '*'
-
-            acl_entry.append(acl)
-            acl_time.append(time)
-            acl_setter.append(setter)
-
-        return acl_entry, acl_time, acl_setter
-
     @asyncio.coroutine
     def registered(self, server, user, proto, line):
         gtarget, utarget = super().registered(server, user, line)
@@ -292,9 +270,7 @@ class ACLList(ACLBase, Command):
             kwds['reason'] = [reason]
 
         if gtarget:
-            # TODO property value for group:grant only ACL viewing
-            data = (yield from server.proto_store.get_group_acl(
-                    gtarget.name.lower()))
+            target = gtarget
         else:
             # ACL's should only be viewable by those with grant priv for users
             # TODO is this correct?
@@ -304,21 +280,23 @@ class ACLList(ACLBase, Command):
                 server.error(user, line.command, msg, False, kwds)
                 return
 
-            data = (yield from server.proto_store.get_user_acl(
-                    utarget.name.lower()))
+            target = utarget
 
-        if not data:
-            user.send(server, user, line.command, kwds)
-            return
+        entry = []
+        timestamp = []
+        setter = []
+        for acl, val in target.acl:
+            entry.append(acl)
+            timestamp.append(val.time)
+            setter.append(val.setter)
 
-        acl_entry, acl_time, acl_setter = self.split_acl(data)
         kwds.update({
-            'acl': acl_entry,
-            'acl-time': acl_time,
-            'acl-setter': acl_setter,
+            'acl': entry,
+            'timestamp': time,
+            'setter': setter,
         })
         user.send_multipart(server, user, line.command,
-                            ('acl', 'acl-time', 'acl-setter'), kwds)
+                            ('acl', 'timestamp', 'setter'), kwds)
 
     @asyncio.coroutine
     def ipc(self, server, proto, line):
@@ -338,25 +316,34 @@ class ACLList(ACLBase, Command):
             kwds['reason'] = [reason]
 
         if gtarget:
-            # TODO property value for group:grant only ACL viewing
-            data = (yield from server.proto_store.get_group_acl(
-                    gtarget.name.lower()))
+            target = gtarget
         else:
-            data = (yield from server.proto_store.get_user_acl(
-                    utarget.name.lower()))
+            # ACL's should only be viewable by those with grant priv for users
+            # TODO is this correct?
+            ret, msg = (yield from self.has_grant(server, user, gtarget,
+                                                  utarget, acl))
+            if not ret:
+                server.error(user, line.command, msg, False, kwds)
+                return
 
-        if not data:
-            proto.send(server, None, line.command, kwds)
-            return
+            target = utarget
 
-        acl_entry, acl_time, acl_setter = self.split_acl(data)
+        entry = []
+        timestamp = []
+        setter = []
+        for acl, val in target.acl:
+            entry.append(acl)
+            timestamp.append(val.time)
+            setter.append(val.setter)
+
         kwds.update({
-            'acl': acl_entry,
-            'acl-time': acl_time,
-            'acl-setter': acl_setter,
+            'acl': entry,
+            'timestamp': time,
+            'setter': setter,
         })
         proto.send_multipart(server, None, line.command,
-                             ('acl', 'acl-time', 'acl-setter'), kwds)
+                             ('acl', 'timestamp', 'setter'), kwds)
+
 
 register.update({
     'acl-set': ACLSet(),

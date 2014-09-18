@@ -5,31 +5,41 @@
 # 2, as published by Sam Hocevar. See the LICENSE file for more details.
 
 import asyncio
-import crypt
 
-from server.property import UserProperty
+from time import time
+
+from server.property import UserPropertySet
 from server.acl import UserACLSet
+from server.roster import Roster
 
 
 class User:
-    def __init__(self, server, name, gecos, acl=None, property=None,
+    def __init__(self, server, name, gecos, password, acl=None, property=None,
                  roster=None, options=[]):
         self.server = server
         self.name = name
         self._gecos = gecos
+        self._password = password
+
+        if acl is None:
+            self.acl = UserACLSet(server, name)
+
         self.acl = acl
-        self.property = property  # TODO
-        self.roster = roster  # TODO
+
+        if property is None:
+            property = UserPropertySet(server, name)
+
+        if roster is None:
+            roster = Roster(server, name)
+
+        self.property = property
+        self.roster = roster
         self.options = options  # TODO
 
         self.sessions = set()
         self.groups = set()
 
-        if self.acl is None:
-            self.acl = UserACLSet()
-
-        if self.property is None:
-            self.property = UserProperty()
+        self.signon = round(time())
 
     @property
     def gecos(self):
@@ -43,13 +53,11 @@ class User:
 
     @property
     def password(self):
-        ret = (yield from self.server.get_user(self.name.lower()))['password']
-        return ret
+        return self._password
 
     @password.setter
     def password(self, value):
-        if not value.startswith('$'):
-            value = crypt.crypt(value, crypt.mksalt())
+        self._password = value
 
         asyncio.async(self.server.proto_store.set_user(self.name.lower(),
                       password=value))

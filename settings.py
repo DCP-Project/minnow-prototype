@@ -41,12 +41,23 @@ class MinnowSettings(object):
         self.listen = (ip, port)
 
         want_json = self._config['server'].getboolean('enable_json', True)
+        want_websockets = self._config['server'].getboolean('enable_websockets')
+        if want_websockets:
+            # want_websockets implies this
+            want_json = True
+
+            wip = self._config['server'].get('websockets_listen_ip', '0.0.0.0')
+            wport = int(self._config['server'].get('websockets_listen_port', '8080'))
+            self.listen_websockets = (wip, wport)
+        else:
+            self.listen_websockets = None
+
         if want_json:
             jip = self._config['server'].get('json_listen_ip', '0.0.0.0')
             jport = int(self._config['server'].get('json_listen_port', '7267'))
             self.listen_json = (jip, jport)
         else:
-            self.listen_json = ('127.0.0.1', 7267)  # XXX TODO handle better
+            self.listen_json = None
 
         self.servpass = self._config['server'].get('password', None)
         self.allow_register = self._config['server'].getboolean('enable_registrations', True)

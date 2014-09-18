@@ -72,6 +72,22 @@ class ProtocolStorage:
         return self.database.modify(queries.s_create_group_acl,
                                     (acl, name, username, setter, reason))
 
+    def create_property_user(self, name, property, value=None, setter=None):
+        return self.database.modify(queries.s_create_property_user,
+                                    (property, value, name, setter))
+
+    def create_property_group(self, name, property, value=None, setter=None):
+        return self.database.modify(queries.s_create_property_group,
+                                    (property, value, name, setter))
+
+    def create_roster_user(self, name, user, alias=None, group_tag=None):
+        return self.database.modify(queries.s_create_roster_user,
+                                    (name, user, alias, group_tag))
+
+    def create_roster_group(self, name, group, alias=None, group_tag=None):
+        return self.database.modify(queries.s_create_roster_group,
+                                    (name, group, alias, group_tag))
+
     def set_user(self, name, *, gecos=None, password=None):
         return self.database.modify(queries.s_set_user,
                                     (gecos, password, name))
@@ -81,20 +97,20 @@ class ProtocolStorage:
 
     def set_property_user(self, name, property, value=None, setter=None):
         return self.database.modify(queries.s_set_property_user,
-                                    (property, value, name))
+                                    (value, property, name))
 
-    def create_property_user(self, name, property, value=None, setter=None):
-        return self.set_property_user(name, property, value, setter)
-
-    def set_property_group(self, name, username, property, value=None,
-                           setter=None):
+    def set_property_group(self, name, property, value=None, setter=None):
         return self.database.modify(queries.s_set_property_group,
-                                    (property, value, name, username))
+                                    (value, property, name))
 
-    def create_property_group(self, name, username, property, value=None,
-                              setter=None):
-        return self.set_property_group(name, username, property, value,
-                                       setter)
+    def set_roster_user(self, name, *, alias=None, group_tag=None,
+                        blocked=None):
+        return self.database.modify(queries.s_set_roster_user,
+                                    (alias, group_tag, blocked, name))
+
+    def set_roster_group(self, name, *, alias=None, group_tag=None):
+        return self.database.modify(queries.s_set_roster_group,
+                                    (alias, group_tag, blocked, name))
 
     def del_user(self, name):
         return self.database.modify(queries.s_del_user, (name,))
@@ -114,3 +130,19 @@ class ProtocolStorage:
 
     def del_group(self, name):
         return self.database.modify(queries.s_del_group, (name,))
+
+    def del_property_user(self, name, property):
+        return self.database.modify(queries.s_del_property_user,
+                                    (property, name))
+
+    def del_property_group(self, name, property):
+        return self.database.modify(queries.s_del_property_group,
+                                    (property, name))
+
+    def del_roster_user(self, name, username):
+        return self.database.modify(queries.s_del_roster_user,
+                                    (name, username))
+
+    def del_roster_group(self, name, group):
+        return self.database.modify(queries.s_del_roster_group,
+                                    (name, group))

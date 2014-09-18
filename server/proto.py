@@ -11,6 +11,7 @@ import random
 import logging
 import traceback
 
+from sys import stderr
 from collections import defaultdict
 
 import server.parser as parser
@@ -18,6 +19,16 @@ import server.parser as parser
 from server.server import DCPServer
 from server.errors import *
 from settings import *
+
+if globals().get('listen_websockets'):
+    try:
+        import websockets
+    except ImportError:
+        print('WebSocket support requested, but websockets module not found',
+              file=stderr)
+        print('Get it at http://github.com/aaugustin/websockets', file=stderr)
+
+        websockets = None
 
 logger = logging.getLogger(__name__)
 
@@ -64,11 +75,15 @@ class DCPBaseProto(asyncio.Protocol):
 
         self.transport = None
 
+        # Line queue
+        self.recvq = asyncio.Queue()
+
     def connection_made(self, transport):
         self.peername = transport.get_extra_info('peername')
         logger.info('Connection from %s', self.peername)
 
         self.transport = transport
+        asyncio.async(self.process())
 
     def connection_lost(self, exc):
         logger.info('Connection lost from %r (reason %s)', self.peername,
@@ -80,25 +95,43 @@ class DCPBaseProto(asyncio.Protocol):
         self.transport = None
 
     def data_received(self, data):
-        data = self.__buf + data
+        data = (self.__buf + data).split(self.frame.terminator)
+        rem = data.pop()
+        self.__buf = rem
 
-        if not data.endswith(self.frame.terminator):
-            data, sep, self.__buf = data.rpartition(self.frame.terminator)
-            if sep:
-                data += sep
-            else:
-                self.__buf = data
-                return
+        if not data:
+            if len(self.__buf) > parser.MAXFRAME:
+                self.error('*', 'Sent an excessively large frame')
 
-        for line in data.split(self.frame.terminator):
+            return
+
+        for line in data:
+            if globals().get('frame_debug'):
+                logger.debug('Got frame: %r', line)
+
             try:
-                frame = self.frame.parse(data)
+                frame = self.frame.parse(line)
             except ParserError as e:
                 logger.exception('Parser failure')
                 self.error('*', 'Parser failure', {'cause': [str(e)]})
                 break
 
-            asyncio.async(self.server.line_queue.put((self, frame)))
+            asyncio.async(self.recvq.put(frame))
+
+    @asyncio.coroutine
+    def process(self):
+        while True:
+            line = (yield from self.recvq.get())
+            try:
+                yield from self.server._call_func(self, line)
+            except Exception as e:
+                logger.exception('Bug hit! (Exception below)')
+                self.error(line.command, 'Internal server error (this isn\'t '
+                           'your fault)')
+                break
+
+            if self.transport is None:
+                break
 
     @staticmethod
     def _proto_name(target):
@@ -123,7 +156,6 @@ class DCPBaseProto(asyncio.Protocol):
             kval = dict()
 
         frame = self.frame(source, target, command, kval)
-        print('Sending frame', bytes(frame))
         self.transport.write(bytes(frame))
 
     def send_multipart(self, source, target, command, keys=list(), kval=None,
@@ -230,8 +262,6 @@ class DCPBaseProto(asyncio.Protocol):
                 # Send what we have, replace kval_cur
                 self.send(source, target, command, kval_cur)
 
-                print(kval_cur)
-
                 kval_cur.clear()
 
             for k, v in kval_next.items():
@@ -268,6 +298,7 @@ class DCPBaseProto(asyncio.Protocol):
 
         if fatal:
             self.transport.close()
+            self.transport = None
 
     def call_cancel(self, name):
         callback = self.callbacks.pop(name, None)
@@ -346,3 +377,45 @@ class DCPJSONProto(DCPSocketProto):
 class DCPUnixProto(DCPBaseProto):
     def __init__(self, server):
         super().__init__(server, parser.JSONFrame)
+
+
+class WebSocketsWrapper:
+    """Crummy wrapper around the websockets lib to fake a proto.
+
+    It really sucks but it's the best way atm."""
+
+    def connection_made(self, transport):
+        logger.info("Connection made", transport)
+        self.transport = transport
+
+    def connection_closed(self, exc):
+        logger.info("Connection closed")
+
+    def data_received(self, data):
+        logger.info("Got some data!", data)
+        self.transport.write(data)
+
+    def __call__(self, websocket, path):
+        def write(data):
+            data = data.decode('utf-8', 'replace')
+            asyncio.async(websocket.send(data))
+
+        def close():
+            data = data.decode('utf-8', 'replace')
+            asyncio.async(websocket._real_close())
+
+        websocket.write = write
+        websocket._real_close = websocket.close
+        websocket.close = close
+        self.connection_made(websocket)
+        while True:
+            message = yield from websocket.recv()
+            if not message:
+                self.connection_closed(None)
+                break
+
+            self.data_received(message.encode('utf-8', 'replace'))
+
+
+class DCPWebSocketsProto(DCPJSONProto, WebSocketsWrapper):
+    pass

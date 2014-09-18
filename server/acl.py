@@ -55,6 +55,9 @@ class GroupACLValues(enum.Enum):
     group_property = 'group:property'
     group_clear = 'group:clear'
 
+    # Blanket grant
+    grant_all = 'grant:*'
+
     # Prohibition ACL's
     ban_banned = 'ban:banned'
     ban_mute = 'ban:mute'
@@ -80,7 +83,7 @@ class UserACLSet:
                                acl['timestamp'])
 
     def __iter__(self):
-        return iter(self.acl_map)
+        return self.acl_map.items()
 
     def has_acl(self, acl):
         return acl in self.acl_map
@@ -100,11 +103,18 @@ class UserACLSet:
     def get(self, acl):
         return self.acl_map.get(acl)
 
+    USERACL_MEMBERS = frozenset(a.value for a in
+                                UserACLValues.__members__.values())
+
     def _add_nocommit(self, acl, setter=None, reason=None, time_=None):
         if acl in self.acl_map:
-            raise ACLExistsError(acl)
+            return (False, ACLExistsError(acl))
+
+        if acl not in self.USERACL_MEMBERS:
+            return (False, ACLValueError(acl))
 
         self.acl_map[acl] = ACL(setter, reason, time_)
+        return (True, None)
 
     def add(self, acl, setter=None, reason=None):
         if not isinstance(acl, str):
@@ -113,7 +123,9 @@ class UserACLSet:
 
             return
 
-        self._add_nocommit(acl, setter, reason)
+        ret, code = self._add_nocommit(acl, setter, reason)
+        if not ret:
+            raise code
 
         asyncio.async(self.server.proto_store.create_user_acl(self.user, acl,
                                                               reason))
@@ -176,9 +188,16 @@ class GroupACLSet:
         user = getattr(user, 'name', user)
         return self.acl_map.get(user)
 
+    GROUPACL_MEMBERS = frozenset(a.value for a in
+                                 GroupACLValues.__members__.values())
+
     def _add_nocommit(self, user, acl, setter=None, reason=None, time_=None):
         if acl in self.acl_map[user]:
-            raise ACLExistsError(acl)
+            pass
+
+        if acl not in self.GROUPACL_MEMBERS:
+            if acl.replace('grant:', '') not in self.GROUPACL_MEMBERS:
+                return
 
         self.acl_map[user][acl] = ACL(setter, reason, time_)
 
@@ -189,6 +208,14 @@ class GroupACLSet:
                 self.add(user, a, setter, reason)
 
             return
+
+        if acl in self.acl_map[user]:
+            raise ACLExistsError(acl)
+
+        if acl not in self.GROUPACL_MEMBERS:
+            if acl.replace('grant:', '') not in self.GROUPACL_MEMBERS:
+                # Allow special grant: ACL's
+                raise ACLValueError(acl)
 
         self._add_nocommit(user, acl, setter, reason)
 

@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS 'user' (
     name VARCHAR(48) UNIQUE NOT NULL,
     password VARCHAR(128) NOT NULL,
     gecos VARCHAR(64),
-    timestamp INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    timestamp INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    avatar BLOB -- XXX does this belong here?
 );
 
 CREATE TABLE IF NOT EXISTS 'acl_user' (
@@ -72,8 +73,47 @@ CREATE TABLE IF NOT EXISTS 'property_group' (
     UNIQUE(property, group_id)
 );
 
-CREATE TABLE IF NOT EXISTS 'version' (
-    id INTEGER UNIQUE NOT NULL
+CREATE TABLE IF NOT EXISTS 'roster' (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES 'user(id)' ON DELETE CASCADE ON UPDATE
+        CASCADE,
+    UNIQUE(user_id)
 );
 
-INSERT OR REPLACE INTO 'version' VALUES (1);
+CREATE TABLE IF NOT EXISTS 'roster_entry_user' (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL, -- Stores the member, NOT the owner of the entry!
+    roster_id INTEGER NOT NULL,
+    alias VARCHAR(512),
+    group_tag VARCHAR(32),
+    blocked INTEGER DEFAULT (0),
+    FOREIGN KEY(user_id) REFERENCES 'user(id)' ON DELETE CASCADE ON UPDATE
+        CASCADE,
+    FOREIGN KEY(roster_id) REFERENCES 'roster(id)' ON DELETE CASCADE ON UPDATE
+        CASCADE,
+    UNIQUE(user_id, roster_id)
+);
+
+CREATE TABLE IF NOT EXISTS 'roster_entry_group' (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    roster_id INTEGER NOT NULL,
+    alias VARCHAR(512),
+    group_tag VARCHAR(32),
+    FOREIGN KEY(group_id) REFERENCES 'group(id)' ON DELETE CASCADE ON UPDATE
+        CASCADE,
+    FOREIGN KEY(roster_id) REFERENCES 'roster(id)' ON DELETE CASCADE ON UPDATE
+        CASCADE,
+    UNIQUE(group_id, roster_id)
+);
+
+-- Ugh I botched updates. :(
+DROP TABLE IF EXISTS 'version';
+
+CREATE TABLE IF NOT EXISTS 'version' (
+    id INTEGER PRIMARY KEY ON CONFLICT IGNORE,
+    version INTEGER UNIQUE DEFAULT (1)
+);
+
+INSERT OR IGNORE INTO 'version' VALUES (0, 1);

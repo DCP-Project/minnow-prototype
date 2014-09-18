@@ -4,5 +4,5 @@
 # under the terms of the Do What The Fuck You Want To Public License, Version
 # 2, as published by Sam Hocevar. See the LICENSE file for more details.
 
-__all__ = ['acl', 'group', 'message', 'motd', 'pong', 'register', 'signon',
-           'whois']
+__all__ = ['acl', 'group', 'message', 'motd', 'pong', 'property', 'register',
+           'signon', 'whois']

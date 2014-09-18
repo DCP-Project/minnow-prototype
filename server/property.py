@@ -5,66 +5,167 @@
 # 2, as published by Sam Hocevar. See the LICENSE file for more details.
 
 import enum
-
+from time import time
 
 class UserPropertyValues(enum.Enum):
-    private = ('private', None)
-    wallops = ('wallops', None)
-    banned = ('banned',  int)
+    private = None
+    wallops = None
 
 
 class GroupPropertyValues(enum.Enum):
-    private = ('private', None)
-    invite = ('invite',  str)
-    topic = ('topic',   str)
+    private = None
+    invite = str
+    moderated = None
+    #topic = str
 
 
-class BaseProperty:
-    __slots__ = ['options', 'option_map']
+class Property:
+    __slots__ = ['value', 'setter', 'time']
 
-    def __init__(self, options):
-        self.options = options
+    def __init__(self, value, setter=None, time_=None):
+        self.value = value
+        self.setter = setter
 
-        self.option_map = dict()
+        if time_ is None:
+            time_ = round(time)
 
-    def __getitem__(self, option):
-        if not hasattr(option, 'name'):
-            option = self.options[option]
+        self.time = time()
 
-        return self.option_map[option.name]
+class BasePropertySet:
+    __slots__ = ['server', 'prop_map']
 
-    def __setitem__(self, option, item):
-        if not hasattr(option, 'name'):
-            option = self.options[option]
+    def __init__(self, server, prop_data=None):
+        # NOTE - we use prop_data here separate instead of getting it ourselves
+        # because __init__ being a coroutine is probably dodgy.
+        self.server = server
+        self.prop_map = dict()
 
-        name, type_ = option.value
-        if type_ is not None:
-            item = type_(item)
+        if not prop_data:
+            return
 
-        self.option_map[option.name] = item
-
-    def __delitem__(self, option):
-        if not hasattr(option, 'name'):
-            option = self.options[option]
-
-        del self.option_map[option.name]
+        for prop in prop_data:
+            self._set_nocommit(prop['property'], prop['setter'],
+                               prop['timestamp'])
 
     def __iter__(self):
-        return iter(self.option_map)
+        return self.prop_map.items()
 
-    def items(self):
-        return iter(self.options.items())
+    def has_property(self, property):
+        return property in self.prop_map
+
+    def get(self, property):
+        return self.prop_map.get(property)
+
+    def _set_nocommit(self, property, value, setter=None, time_=None):
+        self.prop_map[property] = Property(value, setter, time_)
+        return (True, None)
+
+    def set(self, property, value, setter=None):
+        if not isinstance(property, str):
+            assert len(property) == len(value)
+
+            for i, p in enumerate(property):
+                self.set(p, value[i], setter)
+
+            return
+
+        self._set_nocommit(property, value, setter)
+
+    def delete(self, property):
+        if not isinstance(property, str):
+            for p in property:
+                self.delete(a)
+
+            return
+
+        if property not in self.prop_map:
+            raise PropertyDoesNotExistError('Property does not exist')
+
+        del self.prop_map[property]
 
 
-class UserProperty(BaseProperty):
-    __slots__ = BaseProperty.__slots__
+class UserPropertySet(BasePropertySet):
+    __slots__ = BasePropertySet.__slots__ + ['user']
 
-    def __init__(self):
-        return super().__init__(UserPropertyValues)
+    def __init__(self, server, user, prop_data=None):
+        super().__init__(server, prop_data)
+        self.user = user.lower()
+
+    def _set_nocommit(self, property, value, setter=None, time_=None):
+        property = property.lower()
+
+        if property not in UserPropertyValues:
+            return (False, PropertyInvalidError(property))
+
+        if not setter:
+            setter = self.user
+
+        typecast = UserPropertyValues[property].value
+        if typecast is not None:
+            try:
+                value = typecast(value)
+            except Exception as e:
+                return (False, PropertyValueError(str(e)))
+
+        return super()._set_nocommit(property, value, setter, time_)
+
+    def set(self, property, value, setter=None):
+        property = property.lower()
+        if property in self.prop_map:
+            function = self.server.proto_store.set_property_user
+        else:
+            function = self.server.proto_store.create_property_user
+
+        setter = getattr(setter, 'name', setter).lower()
+        super().set(property, value, setter)
+        if not ret:
+            raise code
+
+        asyncio.async(function(self.user, property, value, setter))
+
+    def delete(self, property):
+        super().delete(property)
+        function = self.server.proto_store.delete_property_user
+        asyncio.async(function(self.user, property))
 
 
-class GroupProperty(BaseProperty):
-    __slots__ = BaseProperty.__slots__
+class GroupPropertySet(BasePropertySet):
+    __slots__ = BasePropertySet.__slots__ + ['group']
 
-    def __init__(self):
-        return super().__init__(GroupPropertyValues)
+    def __init__(self, server, group, prop_data=None):
+        super().__init__(server, prop_data)
+        self.group = group.lower()
+
+    def _set_nocommit(self, property, value, setter=None, time_=None):
+        property = property.lower()
+
+        if property not in GroupPropertyValues:
+            return (False, PropertyInvalidError(property))
+
+        typecast = GroupPropertyValues[property].value
+        if typecast is not None:
+            try:
+                value = typecast(value)
+            except Exception as e:
+                return (False, PropertyValueError(str(e)))
+
+        return super()._set_nocommit(property, value, setter, time_)
+
+    def set(self, property, value, setter=None):
+        property = property.lower()
+        if property in self.prop_map:
+            function = self.server.proto_store.set_property_user
+        else:
+            function = self.server.proto_store.create_property_user
+
+        setter = getattr(setter, 'name', setter).lower()
+        ret, code = super().set(property, value, setter)
+        if not ret:
+            raise code
+
+        asyncio.async(function(self.group, property, value, setter))
+
+    def delete(self, property):
+        super().delete(property)
+        function = self.server.proto_store.delete_property_group
+        asyncio.async(function(self.group, property))

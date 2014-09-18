@@ -13,8 +13,18 @@ import os
 from functools import partial
 
 from server.server import DCPServer
-from server.proto import DCPProto, DCPJSONProto, DCPUnixProto
+from server.proto import (DCPProto, DCPJSONProto, DCPUnixProto,
+                          DCPWebSocketsProto)
 from settings import *
+
+if globals().get('listen_websockets'):
+    try:
+        import websockets
+    except ImportError:
+        websockets = None
+
+# Set a restrictive umask
+os.umask(0o077)
 
 logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
@@ -41,13 +51,27 @@ loop = asyncio.get_event_loop()
 state = DCPServer(servname)
 coro = [
     loop.create_server(partial(DCPProto, state), *listen, ssl=ctx),
-    loop.create_server(partial(DCPJSONProto, state), *listen_json, ssl=ctx),
     loop.create_unix_server(partial(DCPUnixProto, state), unix_path),
 ]
+
+if listen_json is not None:
+    coro.append(loop.create_server(partial(DCPJSONProto, state), *listen_json,
+                                   ssl=ctx))
+
+if listen_websockets is not None:
+    coro.append(websockets.serve(partial(DCPWebSocketsProto, state),
+                                 *listen_websockets))
+
 done, pending = loop.run_until_complete(asyncio.wait(coro))
 logger.info('Serving on %r', listen)
-logger.info('Serving JSON on %r', listen_json)
+
+if listen_json:
+    logger.info('Serving JSON on %r', listen_json)
+
 logger.info('Unix control socket at %r', unix_path)
+
+if websockets is not None:
+    logger.info('Serving WebSockets on %r', listen_websockets)
 
 try:
     loop.run_forever()
