@@ -23,5 +23,12 @@ The motd is stored in `motd.txt`. All lines will be truncated at 200 characters
 for sanity reasons.
 
 ## Development
-See the [TODO](https://github.com/DCP-Project/minnow-prototype/blob/master/TODO.md) for 
-details.
+See the [STATUS](https://github.com/DCP-Project/minnow-prototype/blob/master/status.md)
+for details.
+
+You can find us at irc.interlinked.me #dcp for the moment, ironically.
+
+## Bugs
+**Do not file bugs on DCP or Gilligan.** The server is nowhere near completion,
+and therefore neither is the client. You can point out little things that
+should be working and aren't to us on IRC.
