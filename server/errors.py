@@ -14,6 +14,10 @@ class TargetError(DCPError):
     pass
 
 
+class TargetExistsError(DCPError):
+    "Target exists"
+    pass
+
 class TargetDoesNotExistError(TargetError):
     "Target doesn't exist"
     pass
