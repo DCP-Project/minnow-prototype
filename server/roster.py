@@ -118,3 +118,14 @@ class Roster:
         del self.roster_map[target]
 
         asyncio.async(function(user, target))
+
+    def get(self, target):
+        target = getattr(target, 'name', target).lower()
+
+        if target not in self.roster_map:
+            RosterDoesNotExistError(target)
+
+        return self.roster_map[target]
+
+    def __iter__(self):
+        return self.roster_map.items()
