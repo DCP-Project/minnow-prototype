@@ -9,6 +9,7 @@ import sqlite3
 import queue
 import pathlib
 
+from lock import Lock
 from server.storage.sqlite import queries, atomic
 from logging import getLogger
 
@@ -21,10 +22,19 @@ class ProtocolStorage:
     BASEPATH = pathlib.Path('server', 'storage', 'sqlite')
     SCHEMA_VER = 2
 
+    _initdb = False
+    _init_lock = Lock()
+
     def __init__(self, dbname):
         self.database = atomic.Database(dbname)
         self.log = getLogger(__name__ + '.ProtocolStorage')
 
+        with self._init_lock:
+            if not self._initdb:
+                self.initalise()
+                self._initdb = True
+
+    def initalise(self):
         self.sql_file(self.BASEPATH.joinpath('schema.sql'))
 
         # Upgrade the schema if needs be
