@@ -8,9 +8,10 @@ import asyncio
 
 
 class RosterEntryUser:
-    __slots__ = ['target', 'alias', 'group_tag', 'blocked']
+    __slots__ = ['target', 'alias', 'group_tag', 'pending', 'blocked']
 
-    def __init__(self, target, alias=None, group_tag=None, blocked=False):
+    def __init__(self, target, alias=None, group_tag=None, pending=False,
+                 blocked=False):
         self.target = target
         self.roster = roster
 
@@ -19,6 +20,7 @@ class RosterEntryUser:
 
         self.alias = alias
         self.group_tag = group_tag
+        self.pending = bool(pending)
         self.blocked = bool(blocked)
 
 
@@ -45,7 +47,8 @@ class RosterSet:
         if entries_u:
             for entry in entries_u:
                 self._add_nocommit(entry['name'], entry['alias'],
-                                   entry['group_tag'], entry['blocked'])
+                                   entry['group_tag'], entry['pending'],
+                                   entry['blocked'])
 
         if entries_g:
             for entry in entries_g:
@@ -53,7 +56,7 @@ class RosterSet:
                                    entry['group_tag'])
 
     def _add_nocommit(self, target, alias=None, group_tag=None,
-                      blocked=False):
+                      pending=False, blocked=False):
         if not hasattr(target, 'name'):
             target = (yield from server.get_any_target(target))
 
@@ -64,10 +67,10 @@ class RosterSet:
 
         if tname[0] == '#':
             inst = RosterEntryGroup
-            args = (self.user, target, alias, group_tag)
+            args = (target, alias, group_tag)
         else:
             inst = RosterEntryUser
-            args = (self.user, target, alias, group_tag, blocked)
+            args = (target, alias, group_tag, pending, blocked)
 
         if target in self.roster_map:
             return (False, TargetExistsError())
