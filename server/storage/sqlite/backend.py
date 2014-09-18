@@ -7,6 +7,7 @@
 import asyncio
 import sqlite3
 import queue
+import pathlib
 
 from server.storage.sqlite import queries, atomic
 from logging import getLogger
@@ -17,13 +18,33 @@ class ProtocolStorage:
     and (soon) roster data. This class is so big because DCP's storage is all
     inter-dependent. """
 
-    schema_file = 'server/storage/sqlite/schema.sql'
+    BASEPATH = pathlib.Path('server', 'storage', 'sqlite')
+    SCHEMA_VER = 2
 
     def __init__(self, dbname):
         self.database = atomic.Database(dbname)
         self.log = getLogger(__name__ + '.ProtocolStorage')
 
-        with open(self.schema_file, 'r') as f:
+        self.sql_file(self.BASEPATH.joinpath('schema.sql'))
+
+        # Upgrade the schema if needs be
+        c = self.database.read('SELECT "version" FROM "version"')
+        schema_ver = c.fetchone()['version']
+
+        self.log.info('Present schema at %d', schema_ver)
+
+        if schema_ver < self.SCHEMA_VER:
+            for p in self.BASEPATH.joinpath('upgrade').rglob('*.sql'):
+                ver = int(p.name[:-4])
+                if ver >= schema_ver:
+                    self.log.info('Upgrading schema to version %d', ver)
+                    self.sql_file(p)
+
+            self.database.modify('UPDATE "version" SET "version"=?',
+                                 (self.SCHEMA_VER,))
+
+    def sql_file(self, path):
+        with path.open() as f:
             self.database.modify(f.read(), func='executescript')
 
     def get_user(self, name):
@@ -36,6 +57,10 @@ class ProtocolStorage:
 
     def get_user_property(self, name):
         c = self.database.read(queries.s_get_user_property, (name,))
+        return c.fetchall()
+
+    def get_roster_user(self, name):
+        c = self.database.read(queries.s_get_roster_user, (name,))
         return c.fetchall()
 
     def get_group(self, name):
@@ -52,6 +77,10 @@ class ProtocolStorage:
 
     def get_group_property(self, name):
         c = self.database.read(queries.s_get_group_property, (name,))
+        return c.fetchall()
+
+    def get_roster_group(self, name):
+        c = self.database.read(queries.s_get_roster_group, (name,))
         return c.fetchall()
 
     def create_user(self, name, gecos, password):
