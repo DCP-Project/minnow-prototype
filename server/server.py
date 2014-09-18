@@ -97,8 +97,8 @@ class DCPServer:
             if proto:
                 self.error(proto, line.command, str(e))
 
+    @asyncio.coroutine
     def user_enter(self, proto, user, options):
-        print(proto)
         proto.user = self.online_users[user.name.lower()] = user
         user.sessions.add(proto)
 
@@ -260,7 +260,6 @@ class DCPServer:
         else:
             u_data = (yield from self.proto_store.get_user(target))
             if u_data is None:
-                print("User not found", target)
                 return None
 
             acl_data = (yield from self.proto_store.get_user_acl(target))
