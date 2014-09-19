@@ -5,12 +5,11 @@
 # 2, as published by Sam Hocevar. See the LICENSE file for more details.
 
 # Retrieval
-s_get_user = 'SELECT "user".name,"user".password,"user".gecos,' \
-    '"user".timestamp,"user".avatar FROM "user" WHERE "name"=? ORDER BY ' \
-    '"user".name'
+s_get_user = 'SELECT "user".password,"user".gecos,"user".timestamp,' \
+    '"user".avatar FROM "user" WHERE "user".name=? ORDER BY "user".name'
 
 s_get_user_acl = 'SELECT "acl_user".acl,"acl_user".timestamp,"user2".name ' \
-    'FROM "acl_user","user" LEFT OUTER JOIN user AS user2 ON ' \
+    'AS setter FROM "acl_user","user" LEFT OUTER JOIN user AS user2 ON ' \
     '"acl_user".setter_id="user2".id WHERE "user".name=? AND ' \
     '"acl_user".user_id="user".id ORDER BY "acl_user".acl'
 
@@ -27,18 +26,21 @@ s_get_roster_user = 'SELECT "roster_entry_user".alias,' \
     '"roster".id="roster_entry_user".roster_id AND "target".id=' \
     '"roster_entry_user".user_id ORDER BY "target".name'
 
-s_get_group = 'SELECT "group".name,"group".topic,"group".timestamp FROM ' \
-    '"group" WHERE "name"=?'
+s_get_group = 'SELECT "group".topic,"group".timestamp FROM "group" WHERE ' \
+    '"name"=?'
 
-s_get_group_acl = 'SELECT "acl_group".acl,"acl_group".timestamp,"user".name ' \
-    'FROM "acl_group","group" LEFT OUTER JOIN "user" ' \
-    'ON "acl_group".user_id="user".id WHERE "group".name=?'
+s_get_group_acl = 'SELECT "acl_group".acl,"acl_group".timestamp,' \
+    '"acl_group".reason,"target".name AS target,"setter".name AS setter ' \
+    'FROM "acl_group","group","user" AS "target" LEFT OUTER JOIN "user" AS ' \
+    '"setter" ON "acl_group".setter_id="setter".id WHERE "group".name=? ' \
+    'AND "acl_group".user_id="target".id'
 
 s_get_group_acl_user = 'SELECT "acl_group".acl,"acl_group".timestamp",' \
-    '"acl_group".reason,"user2".name FROM "acl_group","user" LEFT OUTER ' \
-    'JOIN "user" as "user2" ON "acl_user".setter_id="user2".id WHERE ' \
-    '"group".name=? AND "user".name=? AND "group".id="acl_group".group_id ' \
-    'AND "user".id="acl_user".user_id ORDER BY "acl_group".acl'
+    '"acl_group".reason,"user2".name AS setter FROM "acl_group","user" ' \
+    'LEFT OUTER JOIN "user" as "user2" ON "acl_user".setter_id="user2".id ' \
+    'WHERE "group".name=? AND "user".name=? AND "group".id=' \
+    '"acl_group".group_id AND "user".id="acl_user".user_id ORDER BY ' \
+    '"acl_group".acl'
 
 s_get_group_property = 'SELECT "property_group".property,' \
     '"property_group".value,"property_user".timestamp,"user".name AS ' \
