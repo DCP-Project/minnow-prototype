@@ -299,5 +299,6 @@ class BaseProtocolStorage(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def sql_file(self, path):
+        # This is not meant for real usage, just demonstrating what to do
         with path.open() as f:
             pass
