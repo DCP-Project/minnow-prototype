@@ -26,7 +26,11 @@ class StorageAbstractor(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get(self, *args, **kwargs):
+    def get_one(self, *args, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def get_all(self):
         pass
 
     @abc.abstractmethod
@@ -43,7 +47,11 @@ class UserAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get(self, name):
+    def get_one(self, name):
+        pass
+
+    @abc.abstractmethod
+    def get_all(self):
         pass
 
     @abc.abstractmethod
@@ -58,11 +66,15 @@ class UserAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 class GroupAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def get(self, name):
+    def add(self, name, topic):
         pass
 
     @abc.abstractmethod
-    def add(self, name, topic):
+    def get_one(self, name):
+        pass
+
+    @abc.abstractmethod
+    def get_all(self):
         pass
 
     @abc.abstractmethod
@@ -77,11 +89,15 @@ class GroupAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 class UserACLAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def get(self, name):
+    def add(self, name, acl, setter=None, reason=None):
         pass
 
     @abc.abstractmethod
-    def add(self, name, acl, setter=None, reason=None):
+    def get_one(self, name):
+        pass
+
+    @abc.abstractmethod
+    def get_all(self):
         pass
 
     @abc.abstractmethod
@@ -100,11 +116,15 @@ class GroupACLAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get_user(self, name, target):
+    def add(self, name, target, acl, setter=None, reason=None):
         pass
 
     @abc.abstractmethod
-    def add(self, name, target, acl, setter=None, reason=None):
+    def get_one(self, name, target, acl):
+        pass
+
+    @abc.abstractmethod
+    def get_all(self, name, target):
         pass
 
     @abc.abstractmethod
@@ -123,11 +143,15 @@ class GroupACLAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 class UserPropertyAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def get(self, name):
+    def add(self, name, property, value=None, setter=None):
         pass
 
     @abc.abstractmethod
-    def add(self, name, property, value=None, setter=None):
+    def get_one(self, name, property):
+        pass
+
+    @abc.abstractmethod
+    def get_all(self, name):
         pass
 
     @abc.abstractmethod
@@ -146,11 +170,15 @@ class UserPropertyAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 class GroupPropertyAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def get(self, name):
+    def add(self, name, property, value=None, setter=None):
         pass
 
     @abc.abstractmethod
-    def add(self, name, property, value=None, setter=None):
+    def get_one(self, name, property):
+        pass
+
+    @abc.abstractmethod
+    def get_all(self, name):
         pass
 
     @abc.abstractmethod
@@ -165,11 +193,15 @@ class GroupPropertyAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 class RosterUserAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def get(self, name):
+    def add(self, name, user, alias=None, group_tag=None):
         pass
 
     @abc.abstractmethod
-    def add(self, name, user, alias=None, group_tag=None):
+    def get_one(self, name, user):
+        pass
+
+    @abc.abstractmethod
+    def get_all(self, name):
         pass
 
     @abc.abstractmethod
@@ -184,11 +216,15 @@ class RosterUserAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 class RosterGroupAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def get(self, name):
+    def add(self, name, group, alias=None, group_tag=None):
         pass
 
     @abc.abstractmethod
-    def add(self, name, group, alias=None, group_tag=None):
+    def get_one(self, name, group):
+        pass
+
+    @abc.abstractmethod
+    def get_all(self, name):
         pass
 
     @abc.abstractmethod
@@ -203,11 +239,15 @@ class RosterGroupAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 class RosterAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def get(self, name):
+    def add(self, name, user, alias=None, group_tag=None, pending=None):
         pass
 
     @abc.abstractmethod
-    def add(self, name, user, alias=None, group_tag=None, pending=None):
+    def get_one(self, name, user):
+        pass
+
+    @abc.abstractmethod
+    def get_all(self, name):
         pass
 
     @abc.abstractmethod
@@ -223,11 +263,15 @@ class RosterAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 class ACLAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def get(self, name):
+    def add(self, name, target, acl, setter=None, reason=None):
         pass
 
     @abc.abstractmethod
-    def add(self, name, target, acl, setter=None, reason=None):
+    def get_one(self, name, target, acl):
+        pass
+
+    @abc.abstractmethod
+    def get_all(self, name):
         pass
 
     @abc.abstractmethod
@@ -242,11 +286,15 @@ class ACLAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 class PropertyAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def get(self, name):
+    def add(self, name, property, value=None, setter=None):
         pass
 
     @abc.abstractmethod
-    def add(self, name, property, value=None, setter=None):
+    def get_one(self, name, property):
+        pass
+
+    @abc.abstractmethod
+    def get_all(self, name):
         pass
 
     @abc.abstractmethod
