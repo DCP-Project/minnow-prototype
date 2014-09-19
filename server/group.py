@@ -15,7 +15,9 @@ from server.errors import *
 
 
 class Group:
+
     """ Like an IRC channel """
+
     def __init__(self, server, name, topic=None, acl=None, property=None,
                  ts=None):
         self.server = server
@@ -33,6 +35,7 @@ class Group:
         self.property = property
 
         self.users = set()
+
         self.ts = None
 
         if self.ts is None:
@@ -57,8 +60,8 @@ class Group:
             raise GroupAdditionError('Duplicate user added: {}'.format(
                 user.name))
 
-        self.users.add(user)
         user.groups.add(self)
+        self.users.add(user)
 
         kval = dict()
         if reason:
@@ -74,30 +77,11 @@ class Group:
         user.send(self, user, 'group-info', kval)
 
         kval = {
-            'users': []
+            'users': list(self.users),
         }
 
         # TODO use multipart
-        d_tlen = tlen = 500  # Probably too much... but good enough for now.
-        for user2 in self.users:
-            tlen += len(user2.name) + 1
-            if tlen >= MAXFRAME:
-                # Overflow... send what we have and continue
-                user.send(self, user, 'group-names', kval)
-                tlen = d_tlen + len(user2.name) + 1
-                kval['users'] = []
-
-            kval['users'].append(user2.name)
-
-        # Burst what's left
-        if len(kval['users']) > 0:
-            user.send(self, user, 'group-names', kval)
-
-        # Burst ACL's
-        kval = {
-            'acl': [],
-        }
-        user.send(self, user, 'acl-list', None)
+        user.send_multipart(self, user, 'group-names', ('users',), kval)
 
     def member_del(self, user, reason=None, permanent=False):
         if user not in self.users:
