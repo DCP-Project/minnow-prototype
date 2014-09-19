@@ -90,6 +90,9 @@ class StorageSet:
         if obj:
             return obj
 
+    def has(self, key):
+        return self._get_key(key) in self._mapping
+
     def delete(self, key, *args, **kwargs):
         key = self._get_key(key)
         self._mapping.delete[key]
