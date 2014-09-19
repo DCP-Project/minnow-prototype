@@ -75,6 +75,3 @@ class User:
 
     def message(self, source, message):
         self.send(source, self, 'message', {'body': message})
-
-    def __hash__(self):
-        return hash((hash(self.name), hash(self.gecos)))
