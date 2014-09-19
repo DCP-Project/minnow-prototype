@@ -27,9 +27,9 @@ class Property:
         self.setter = setter
 
         if time_ is None:
-            time_ = round(time)
+            time_ = round(time())
 
-        self.time = time()
+        self.time = time_
 
 class BasePropertySet:
     __slots__ = ['server', 'prop_map']
