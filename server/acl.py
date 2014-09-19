@@ -64,7 +64,6 @@ class ACL:
 
 
 class UserACLSet:
-    # TODO - move things like storage doodads and whatnot here.
 
     __slots__ = ['server', 'user', 'acl_map']
 
