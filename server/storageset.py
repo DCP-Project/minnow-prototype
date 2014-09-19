@@ -5,6 +5,7 @@
 # 2, as published by Sam Hocevar. See the LICENSE file for more details.
 
 
+import asyncio
 import types
 
 
@@ -25,9 +26,6 @@ class StorageSet:
     def __init__(self, factory, storage=None, target=None):
         self.factory = factory
         self.storage = storage
-        self.target = self._get_key(target)
-
-        assert (target if storage else True)
 
         self._mapping = dict()
 
@@ -49,23 +47,28 @@ class StorageSet:
 
         for item in store:
             # Prepare the args
-            self.add(item[self.KEY_ROW], **item)
+            key = item[self.KEY_ROW]
+            obj = self.factory(**{k: v for k, v in item.items()})
+            self._mapping[key] = obj
 
-    def add(self, key, commit=False, *args, **kwargs):
+    @asyncio.coroutine
+    def add(self, key, *args, **kwargs):
         key = self._get_key(key)
 
         obj = self.factory(*args, **kwargs)
         self._mapping[key] = obj
 
-        if commit:
-            self._add_db(key, *args, **kwargs)
+        if self.storage:
+            yield from self._add_db(key, *args, **kwargs)
 
         return obj
 
+    @asyncio.coroutine
     def _add_db(self, key, *args, **kwargs):
         if self.storage:
-            self.storage.add(key, *args, **kwargs)
+            yield from self.storage.add(key, *args, **kwargs)
 
+    @asyncio.coroutine
     def set(self, key, *args, **kwargs):
         key = self._get_key(key)
 
@@ -76,28 +79,31 @@ class StorageSet:
         if args:
             self._mapping[key].set(*args)
 
-        self._set_db(key, *args, **kwargs)
+        yield from self._set_db(key, *args, **kwargs)
 
         return item
 
+    @asyncio.coroutine
     def _set_db(self, key, *args, **kwargs):
         if self.storage:
-            self.storage.set(key, *args, **kwargs)
+            yield from self.storage.set(key, *args, **kwargs)
 
+    @asyncio.coroutine
     def add_or_set(self, key, *args, **kwargs):
         self._get_key(key)
 
         if key in self._mapping:
-            return self.set(key, *args, **kwargs)
+            yield from self.set(key, *args, **kwargs)
         else:
-            return self.add(key, *args, **kwargs)
+            yield from self.add(key, *args, **kwargs)
 
+    @asyncio.coroutine
     def get(self, key):
         key = self._get_key(key)
         obj = self._mapping.get(key)
 
         if not obj and self.check_db_fail:
-            obj = self._get_db(key)
+            obj = (yield from self._get_db(key))
             if not obj:
                 return
 
@@ -105,44 +111,59 @@ class StorageSet:
 
         return obj
 
+    @asyncio.coroutine
     def _get_db(self, key):
         if self.storage:
-            return self.storage.get_one(key, *args, **kwargs)
+            ret = (yield from self.storage.get_one(key, *args, **kwargs))
+            return ret
 
+    @asyncio.coroutine
     def has(self, key):
-        return self._get_key(key) in self._mapping
+        if self._get_key(key) in self._mapping:
+            return True
+        else:
+            return (yield from self.get(key) is not None)
 
+    @asyncio.coroutine
     def delete(self, key, *args, **kwargs):
         key = self._get_key(key)
         self._mapping.delete[key]
 
-        self._delete_db(key, *args, **kwargs)
+        yield from self._delete_db(key, *args, **kwargs)
 
+    @asyncio.coroutine
     def _delete_db(self, key, *args, **kwargs):
         if self.storage:
             self.storage.delete(key, *args, **kwargs)
 
     def __contains__(self, key):
-        key = self._get_key(key)
-        return key in self._mapping
+        return (yield from self.has(key))
 
 
 class TargetStorageSet(StorageSet):
 
     """Storage set for targets"""
 
+    def __init__(self, factory, storage=None, target=None):
+        self.target = self._get_key(target)
+        super().__init__(factory, storage)
+
+    @asyncio.coroutine
     def _add_db(self, key, *args, **kwargs):
         if self.storage:
-            self.storage.add(self.target, key, *args, **kwargs)
+            yield from self.storage.add(self.target, key, *args, **kwargs)
 
+    @asyncio.coroutine
     def _get_db(self, key):
         if self.storage:
-            return self.storage.get_one(key, *args, **kwargs)
+            ret = (yield from self.storage.get_one(self.target, key))
+            return ret
     
+    @asyncio.coroutine
     def _set_db(self, key, *args, **kwargs):
         if self.storage:
-            self.storage.set(self.target, key, *args, **kwargs)
+            yield from self.storage.set(self.target, key, *args, **kwargs)
 
     def _delete_db(self, key, *args, **kwargs):
         if self.storage:
-            self.storage.delete(self.target, key, *args, **kwargs)
+            yield from self.storage.delete(self.target, key, *args, **kwargs)
