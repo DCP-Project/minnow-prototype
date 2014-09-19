@@ -10,18 +10,6 @@ from time import time
 from collections import defaultdict
 
 
-class ACL:
-    __slots__ = ['setter', 'reason', 'time']
-
-    def __init__(self, setter=None, reason=None, time_=None):
-        self.setter = setter
-        self.reason = reason
-        if time_ is None:
-            time_ = round(time())
-
-        self.time = time_
-
-
 class UserACLValues(enum.Enum):
     user_auspex = 'user:auspex'
     user_register = 'user:register'
@@ -61,6 +49,18 @@ class GroupACLValues(enum.Enum):
     # Prohibition ACL's
     ban_banned = 'ban:banned'
     ban_mute = 'ban:mute'
+
+
+class ACL:
+    __slots__ = ['setter', 'reason', 'time']
+
+    def __init__(self, setter=None, reason=None, time_=None):
+        self.setter = setter
+        self.reason = reason
+        if time_ is None:
+            time_ = round(time())
+
+        self.time = time_
 
 
 class UserACLSet:
