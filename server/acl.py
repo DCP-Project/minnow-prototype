@@ -64,7 +64,6 @@ class GroupACLValues(enum.Enum):
 
 
 class UserACLSet:
-    # TODO - move things like storage doodads and whatnot here.
 
     __slots__ = ['server', 'user', 'acl_map']
 
