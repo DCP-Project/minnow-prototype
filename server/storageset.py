@@ -55,10 +55,14 @@ class StorageSet:
         obj = self.factory(*args, **kwargs)
         self._mapping[key] = obj
 
-        if self.storage and commit:
-            self.storage.add(self.target, key, *args, **kwargs)
+        if commit:
+            self._add_commit(key, *args, **kwargs)
 
         return obj
+
+    def _add_commit(self, key, *args, **kwargs):
+        if self.storage:
+            self.storage.add(self.target, key, *args, **kwargs)
 
     def set(self, key, *args, **kwargs):
         key = self._get_key(key)
@@ -70,10 +74,13 @@ class StorageSet:
         if args:
             self._mapping[key].set(*args)
 
-        if self.storage:
-            self.storage.set(self.target, key, *args, **kwargs)
+        self._set_commit(key, *args, **kwargs)
 
         return item
+
+    def _set_commit(self, key, *args, **kwargs):
+        if self.storage:
+            self.storage.set(self.target, key, *args, **kwargs)
 
     def add_or_set(self, key, *args, **kwargs):
         self._get_key(key)
@@ -97,6 +104,9 @@ class StorageSet:
         key = self._get_key(key)
         self._mapping.delete[key]
 
+        self._delete_commit(key, *args, **kwargs)
+
+    def _delete_commit(self, key, *args, **kwargs):
         if self.storage:
             self.storage.delete(self.target, key, *args, **kwargs)
 
