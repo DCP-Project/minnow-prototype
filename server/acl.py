@@ -160,7 +160,7 @@ class GroupACLSet:
             return
 
         for acl in acl_data:
-            self._add_nocommit(acl['user'], acl['acl'], acl['setter'],
+            self._add_nocommit(acl['target'], acl['acl'], acl['setter'],
                                acl['reason'], acl['timestamp'])
 
     def __iter__(self):
