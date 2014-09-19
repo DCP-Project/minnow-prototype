@@ -19,6 +19,8 @@ class StorageSet:
     """An object to hold DCP doodads (targets, users, properties, etc)"""
 
     KEY_ROW = 'name'
+    eager = False
+    check_db_fail = True
 
     def __init__(self, factory, storage=None, target=None):
         self.factory = factory
@@ -29,7 +31,7 @@ class StorageSet:
 
         self._mapping = dict()
 
-        if storage:
+        if storage and self.eager:
             self.populate()
 
     @staticmethod
@@ -41,7 +43,7 @@ class StorageSet:
         return key
 
     def populate(self):
-        store = self.storage.get(self.target)
+        store = self.storage.get_all(self.target)
         if not store:
             return
 
@@ -56,13 +58,13 @@ class StorageSet:
         self._mapping[key] = obj
 
         if commit:
-            self._add_commit(key, *args, **kwargs)
+            self._add_db(key, *args, **kwargs)
 
         return obj
 
-    def _add_commit(self, key, *args, **kwargs):
+    def _add_db(self, key, *args, **kwargs):
         if self.storage:
-            self.storage.add(self.target, key, *args, **kwargs)
+            self.storage.add(key, *args, **kwargs)
 
     def set(self, key, *args, **kwargs):
         key = self._get_key(key)
@@ -74,13 +76,13 @@ class StorageSet:
         if args:
             self._mapping[key].set(*args)
 
-        self._set_commit(key, *args, **kwargs)
+        self._set_db(key, *args, **kwargs)
 
         return item
 
-    def _set_commit(self, key, *args, **kwargs):
+    def _set_db(self, key, *args, **kwargs):
         if self.storage:
-            self.storage.set(self.target, key, *args, **kwargs)
+            self.storage.set(key, *args, **kwargs)
 
     def add_or_set(self, key, *args, **kwargs):
         self._get_key(key)
@@ -94,8 +96,18 @@ class StorageSet:
         key = self._get_key(key)
         obj = self._mapping.get(key)
 
-        if obj:
-            return obj
+        if not obj and self.check_db_fail:
+            obj = self._get_db(key)
+            if not obj:
+                return
+
+            self._mapping[key] = obj
+
+        return obj
+
+    def _get_db(self, key):
+        if self.storage:
+            return self.storage.get_one(key, *args, **kwargs)
 
     def has(self, key):
         return self._get_key(key) in self._mapping
@@ -104,12 +116,33 @@ class StorageSet:
         key = self._get_key(key)
         self._mapping.delete[key]
 
-        self._delete_commit(key, *args, **kwargs)
+        self._delete_db(key, *args, **kwargs)
 
-    def _delete_commit(self, key, *args, **kwargs):
+    def _delete_db(self, key, *args, **kwargs):
         if self.storage:
-            self.storage.delete(self.target, key, *args, **kwargs)
+            self.storage.delete(key, *args, **kwargs)
 
     def __contains__(self, key):
         key = self._get_key(key)
         return key in self._mapping
+
+
+class TargetStorageSet(StorageSet):
+
+    """Storage set for targets"""
+
+    def _add_db(self, key, *args, **kwargs):
+        if self.storage:
+            self.storage.add(self.target, key, *args, **kwargs)
+
+    def _get_db(self, key):
+        if self.storage:
+            return self.storage.get_one(key, *args, **kwargs)
+    
+    def _set_db(self, key, *args, **kwargs):
+        if self.storage:
+            self.storage.set(self.target, key, *args, **kwargs)
+
+    def _delete_db(self, key, *args, **kwargs):
+        if self.storage:
+            self.storage.delete(self.target, key, *args, **kwargs)
