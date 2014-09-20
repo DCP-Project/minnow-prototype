@@ -52,10 +52,14 @@ class RosterSet(StorageSet):
     check_db_fail = False  # XXX
 
     def __init__(self, server, user):
+        self.server = server
         super().__init__(roster_factory, RosterAbstractor(server.proto_store))
 
     @asyncio.coroutine
     def add(self, target, alias=None, group_tag=None, pending=None):
+        if not hasattr(target, 'name'):
+            target = (yield from self.server.get_any_target(target))
+
         yield from super().add(target, alias, group_tag, pending)
 
     @asyncio.coroutine
@@ -66,6 +70,9 @@ class RosterSet(StorageSet):
     @asyncio.coroutine
     def set(self, target, alias=None, group_tag=None, pending=None,
             blocked=None):
+        if not hasattr(target, 'name'):
+            target = (yield from self.server.get_any_target(target))
+
         yield from super().set(target, alias, group_tag, pending, blocked)
 
     @asyncio.coroutine
@@ -76,6 +83,9 @@ class RosterSet(StorageSet):
 
     @asyncio.coroutine
     def delete(self, target):
+        if not hasattr(target, 'name'):
+            target = (yield from self.server.get_any_target(target))
+
         yield from super().delete(target)
 
     @asyncio.coroutine
@@ -85,6 +95,3 @@ class RosterSet(StorageSet):
 
     def _get_db(self, target):
         raise NotImplementedError()
-
-    def __iter__(self):
-        return self.roster_map.items()
