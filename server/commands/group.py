@@ -34,8 +34,7 @@ class GroupEnter(Command):
             server.groups[target] = Group(target)
 
         group = server.groups[target]
-        if group in user.groups:
-            assert user in group.users
+        if group.has_member(user):
             server.error(user, line.command, 'You are already entered', False,
                          {'target': [target]})
             return
@@ -62,8 +61,7 @@ class GroupExit(Command):
             return
 
         group = server.groups[target]
-        if group not in user.groups:
-            assert user not in group.users
+        if not group.has_user(user):
             server.error(user, line.command, 'You are not in that group',
                          False, {'target': [target]})
             return

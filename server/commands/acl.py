@@ -13,7 +13,7 @@ class ACLBase:
     @asyncio.coroutine
     @staticmethod
     def has_grant_group(server, user, gtarget, acl):
-        if user not in gtarget.users:
+        if not gtarget.has_user(user):
             return (False, 'Must be in group to alter ACL\'s in it')
 
         check_grant = ['grant:*']

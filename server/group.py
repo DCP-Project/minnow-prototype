@@ -5,13 +5,25 @@
 # 2, as published by Sam Hocevar. See the LICENSE file for more details.
 
 import time
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 from server.user import User
 from server.parser import MAXFRAME
 from server.acl import GroupACLSet
 from server.property import GroupPropertySet
 from server.errors import *
+
+
+MembershipKey = namedtuple('MembershipKey', ('user', 'group'))
+
+
+class MembershipData:
+
+    def __init__(self, acl):
+        self.user = user
+        self.group = group
+
+        self.acl = acl
 
 
 class Group:
@@ -34,7 +46,7 @@ class Group:
 
         self.property = property
 
-        self.users = set()
+        self.members = dict() 
 
         self.ts = None
 
@@ -56,12 +68,14 @@ class Group:
                       topic=value))
 
     def member_add(self, user, reason=None):
-        if user in self.users:
+        member = MembershipData(user, self)
+        if member in self.members:
+            # It's all about membership
             raise GroupAdditionError('Duplicate user added: {}'.format(
                 user.name))
 
-        user.groups.add(self)
-        self.users.add(user)
+        data = MembershipData(None)
+        self.members[member] = user.members[member] = data
 
         kval = dict()
         if reason:
@@ -77,23 +91,27 @@ class Group:
         user.send(self, user, 'group-info', kval)
 
         kval = {
-            'users': list(self.users),
+            'users': [u.user.name for u in self.members.keys()],
         }
 
         # TODO use multipart
         user.send_multipart(self, user, 'group-names', ('users',), kval)
 
-    def member_del(self, user, reason=None, permanent=False):
-        if user not in self.users:
+    def member_del(self, user, reason=None):
+        member = MembershipKey(user, self)
+        if member not in self.members:
             raise GroupRemovalError('Nonexistent user {} removed'.format(
                 user.name))
 
-        self.users.remove(user)
-        user.groups.remove(self)
+        del self.members[member], user.members[member]
+
+    def has_member(self, user):
+        member = MembershipKey(user, self)
+        return member in self.members
 
     def message(self, source, message):
         # TODO various ACL checks
-        if isinstance(source, User) and source not in self.users:
+        if isinstance(source, User) and not self.has_user(source):
             self.server.error(source, 'message', 'You aren\'t in that group',
                               False)
             return
@@ -104,7 +122,7 @@ class Group:
         self.send(source, self, 'message', kval, [source])
 
     def send(self, source, target, command, kval=None, filter=[]):
-        for user in self.users:
+        for (user, group) in self.members.keys():
             if user in filter:
                 continue
 
@@ -112,7 +130,7 @@ class Group:
 
     def send_multipart(self, source, target, command, keys=[], kval=None,
                        filter=[]):
-        for user in self.users:
+        for (user, group) in self.members.keys():
             if user in filter:
                 continue
 

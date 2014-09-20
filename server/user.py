@@ -37,7 +37,8 @@ class User:
         self.options = options  # TODO
 
         self.sessions = set()
-        self.groups = set()
+
+        self.members = dict()
 
         self.signon = round(time())
 
