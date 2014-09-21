@@ -23,7 +23,7 @@ class StorageSet:
     eager = False
     check_db_fail = True
 
-    def __init__(self, factory, storage=None, target=None):
+    def __init__(self, factory, storage=None):
         self.factory = factory
         self.storage = storage
 
@@ -41,7 +41,7 @@ class StorageSet:
         return key
 
     def populate(self):
-        store = self.storage.get_all(self.target)
+        store = (yield from self._populate_db())
         if not store:
             return
 
@@ -50,6 +50,11 @@ class StorageSet:
             key = item[self.KEY_ROW]
             obj = self.factory(**{k: v for k, v in item.items()})
             self._mapping[key] = obj
+
+    @asyncio.coroutine
+    def _populate_db(self):
+        ret = (yield from self.storage.get_all())
+        return ret
 
     @asyncio.coroutine
     def add(self, key, *args, **kwargs):
@@ -147,6 +152,11 @@ class TargetStorageSet(StorageSet):
     def __init__(self, factory, storage=None, target=None):
         self.target = self._get_key(target)
         super().__init__(factory, storage)
+
+    @asyncio.coroutine
+    def _populate_db(self):
+        ret = (yield from self.storage.get_all(self.target))
+        return ret
 
     @asyncio.coroutine
     def _add_db(self, key, *args, **kwargs):
