@@ -111,7 +111,7 @@ class Group:
 
     def message(self, source, message):
         # TODO various ACL checks
-        if isinstance(source, User) and not self.has_user(source):
+        if isinstance(source, User) and not self.has_member(source):
             self.server.error(source, 'message', 'You aren\'t in that group',
                               False)
             return

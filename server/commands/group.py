@@ -61,7 +61,7 @@ class GroupExit(Command):
             return
 
         group = server.groups[target]
-        if not group.has_user(user):
+        if not group.has_member(user):
             server.error(user, line.command, 'You are not in that group',
                          False, {'target': [target]})
             return
