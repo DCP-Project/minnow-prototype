@@ -46,14 +46,14 @@ def roster_factory(self, target, alias=None, group_tag=None, pending=False,
         return RosterEntryUser(target, alias, group_tag, pending, blocked)
 
 
-class RosterSet(StorageSet):
+class RosterSet(TargetStorageSet):
 
     eager = True
     check_db_fail = False  # XXX
 
     def __init__(self, server, user):
         self.server = server
-        super().__init__(roster_factory, RosterAbstractor(server.proto_store))
+        super().__init__(roster_factory, RosterAbstractor(server.proto_store), user)
 
     @asyncio.coroutine
     def add(self, target, alias=None, group_tag=None, pending=None):
