@@ -7,7 +7,11 @@
 import asyncio
 import enum
 from time import time
-from collections import defaultdict
+
+from server.storageset import StorageSet, StorageItem
+from server.storage.abstractor import ACLAbstractor
+
+ACLAbstractor = ACLAbstractor.__subclasses__()[0]
 
 
 class UserACLValues(enum.Enum):
@@ -25,217 +29,89 @@ class UserACLValues(enum.Enum):
     group_ban = 'group:ban'
 
     # Prohibition ACL's
-    ban_banned = 'ban:banned'
-    ban_usermessage = 'ban:usermessage'
+    ban_banned = 'prohibit:ban'
+    ban_usermessage = 'prohibit:usermessage'
 
 
 class GroupACLValues(enum.Enum):
-    user_kick = 'user:kick'
-    user_ban = 'user:ban'
-    user_mute = 'user:mute'
-    user_voice = 'user:voice'
+    # Allowance ACL's
+    kick = 'kick'
+    ban = 'ban'
+    mute = 'mute'
+    voice = 'voice'
+    invex = 'invex'
 
-    user_owner = 'user:owner'
-    user_admin = 'user:admin'
-    user_op = 'user:op'
+    topic = 'topic'
+    property = 'property'
+    clear = 'clear'
 
-    group_topic = 'group:topic'
-    group_property = 'group:property'
-    group_clear = 'group:clear'
+    # IRC compatibility gunk
+    owner = 'owner'  # Implies everything (see owner property)
+    admin = 'admin'  # Also implies everything
+    op = 'op'  # Everything except clear
+    halfop = 'halfop'  # Everything except property, clear, and grant
 
-    # Blanket grant
-    grant_all = 'grant:*'
+    grant = 'grant'
 
     # Prohibition ACL's
-    ban_banned = 'ban:banned'
-    ban_mute = 'ban:mute'
+    prohibit_banned = 'prohibit:ban'
+    prohibit_mute = 'prohibit:mute'
 
 
-class ACL:
+class ACL(StorageItem):
     __slots__ = ['setter', 'reason', 'time']
 
     def __init__(self, setter=None, reason=None, time_=None):
-        self.setter = setter
-        self.reason = reason
         if time_ is None:
             time_ = round(time())
 
-        self.time = time_
+        super().__init__(self, setter, reason, time=time_)
 
 
-class UserACLSet:
+class ACLSet(TargetStorageSet):
 
-    __slots__ = ['server', 'user', 'acl_map']
+    eager = True
+    check_db_fail = False  # XXX
 
-    def __init__(self, server, user, acl_data=[]):
-        # NOTE - we use acl_data here separate instead of getting it ourselves
-        # because __init__ being a coroutine is probably dodgy.
+    def __init__(self, server, target):
         self.server = server
-        self.user = user.lower()
-        self.acl_map = dict()
+        super().__init__(roster_factory, RosterAbstractor(server.proto_store),
+                         target)
 
-        if not acl_data:
-            return
+    def _get_key(self, key):
+        return key.lower()
 
-        for acl in acl_data:
-            self._add_nocommit(acl['acl'], acl['setter'], acl['reason'],
-                               acl['timestamp'])
+    @asyncio.coroutine
+    def _check_setter(self, acl, setter):
+        if setter is not None:
+            if not hasattr(setter, 'name'):
+                setter = self.server.get_any_target(setter)
 
-    def __iter__(self):
-        return self.acl_map.items()
+            if not (yield from setter.acl.has('grant')):
+                raise CommandACLError('grant')
 
-    def has_acl(self, acl):
-        return acl in self.acl_map
+            if not (yield from setter.acl.has(acl)):
+                raise CommandACLError(acl)
 
-    def has_any(self, acl):
-        if isinstance(acl, str):
-            return self.has_acl(acl)
+    @asyncio.coroutine
+    def add(self, acl, setter=None, reason=None, time=None):
+        yield from self._check_setter(acl, setter)
+        yield from super().add(acl, setter, reason, time)
 
-        return any(self.has_acl(a) for a in acl)
+    @asyncio.coroutine
+    def _add_db(self, acl, setter=None, reason=None, time=None):
+        yield from super()._add_db(acl, setter, reason)
 
-    def has_all(self, acl):
-        if isinstance(acl, str):
-            return self.has_acl(acl)
+    @asyncio.coroutine
+    def set(self, acl, setter=None, reason=None, time=None):
+        yield from self._check_setter(acl, setter)
+        yield from super().set(acl, setter, reason, time)
 
-        return all(self.has_acl(a) for a in acl)
+    @asyncio.coroutine
+    def _set_db(self, acl, setter=None, reason=None, time=None):
+        yield from super()._set_db(acl, setter, reason, time)
 
-    def get(self, acl):
-        return self.acl_map.get(acl)
-
-    USERACL_MEMBERS = frozenset(a.value for a in
-                                UserACLValues.__members__.values())
-
-    def _add_nocommit(self, acl, setter=None, reason=None, time_=None):
-        if acl in self.acl_map:
-            return (False, ACLExistsError(acl))
-
-        if acl not in self.USERACL_MEMBERS:
-            return (False, ACLValueError(acl))
-
-        self.acl_map[acl] = ACL(setter, reason, time_)
-        return (True, None)
-
-    def add(self, acl, setter=None, reason=None):
-        if not isinstance(acl, str):
-            for a in acl:
-                self.add(a, setter, reason)
-
-            return
-
-        ret, code = self._add_nocommit(acl, setter, reason)
-        if not ret:
-            raise code
-
-        asyncio.async(self.server.proto_store.create_user_acl(self.user, acl,
-                                                              reason))
-
-    def delete(self, acl):
-        if not isinstance(acl, str):
-            for a in acl:
-                self.delete(a)
-
-            return
-
-        if acl not in self.acl_map:
-            raise ACLDoesNotExistError('ACL does not exist')
-
-        del self.acl_map[acl]
-
-        asyncio.async(self.server.proto_store.del_user_acl(acl, self.user))
-
-
-class GroupACLSet:
-    __slots__ = ['server', 'group', 'acl_map']
-
-    def __init__(self, server, group, acl_data=None):
-        self.server = server
-        self.group = group
-
-        # XXX this is a hack and will change someday
-        # (dict of a dict is no way to live)
-        self.acl_map = defaultdict(dict)
-
-        if not acl_data:
-            return
-
-        for acl in acl_data:
-            self._add_nocommit(acl['target'], acl['acl'], acl['setter'],
-                               acl['reason'], acl['timestamp'])
-
-    def __iter__(self):
-        for user, acl_ in self.acl_map.items():
-            for acl in acl_:
-                yield (user, acl)
-
-    def has_acl(self, user, acl):
-        user = getattr(user, 'name', user)
-        return acl in self.acl_map[user]
-
-    def has_any(self, user, acl):
-        if isinstance(acl, str):
-            return self.has_acl(user, acl)
-
-        return any(self.has_acl(user, a) for a in acl)
-
-    def has_all(self, user, acl):
-        if isinstance(acl, str):
-            return self.has_acl(user, acl)
-
-        return all(self.has_acl(user, a) for a in acl)
-
-    def get(self, user, acl):
-        user = getattr(user, 'name', user)
-        return self.acl_map.get(user)
-
-    GROUPACL_MEMBERS = frozenset(a.value for a in
-                                 GroupACLValues.__members__.values())
-
-    def _add_nocommit(self, user, acl, setter=None, reason=None, time_=None):
-        if acl in self.acl_map[user]:
-            pass
-
-        if acl not in self.GROUPACL_MEMBERS:
-            if acl.replace('grant:', '') not in self.GROUPACL_MEMBERS:
-                return
-
-        self.acl_map[user][acl] = ACL(setter, reason, time_)
-
-    def add(self, user, acl, setter=None, reason=None):
-        user = getattr(user, 'name', user)
-        if not isinstance(acl, str):
-            for a in acl:
-                self.add(user, a, setter, reason)
-
-            return
-
-        if acl in self.acl_map[user]:
-            raise ACLExistsError(acl)
-
-        if acl not in self.GROUPACL_MEMBERS:
-            if acl.replace('grant:', '') not in self.GROUPACL_MEMBERS:
-                # Allow special grant: ACL's
-                raise ACLValueError(acl)
-
-        self._add_nocommit(user, acl, setter, reason)
-
-        asyncio.async(self.server.proto_store.create_group_acl(self.group,
-                      user, acl, setter, reason))
-
-    def delete(self, user, acl):
-        user = getattr(user, 'name', user)
-        if not isinstance(acl, str):
-            for a in acl:
-                self.delete(user, a)
-
-            return
-
-        if acl not in self.acl_map[user]:
-            raise ACLDoesNotExistError('ACL does not exist')
-
-        del self.acl_map[user][acl]
-
-        asyncio.async(self.server.proto_store.del_group_acl(self.group, user,
-                      acl))
-
-    def delete_all(self, user):
-        self.acl_map.pop(user, None)
+    @asyncio.coroutine
+    def delete(self, acl, setter=None):
+        yield from self._check_setter(acl, setter)
+        super().delete(acl)
