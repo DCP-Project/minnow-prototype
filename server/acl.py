@@ -6,6 +6,8 @@
 
 import asyncio
 import enum
+import abc
+
 from time import time
 
 from server.storageset import StorageSet, StorageItem
@@ -68,7 +70,7 @@ class ACL(StorageItem):
         super().__init__(self, setter, reason, time=time_)
 
 
-class ACLSet(TargetStorageSet):
+class ACLSet(TargetStorageSet, metaclass=abc.ABCMeta):
 
     eager = True
     check_db_fail = False  # XXX
@@ -78,20 +80,14 @@ class ACLSet(TargetStorageSet):
         super().__init__(roster_factory, RosterAbstractor(server.proto_store),
                          target)
 
-    def _get_key(self, key):
-        return key.lower()
+    @abc.abstractmethod
+    def _get_key(self, acl):
+        pass
 
+    @abc.abstractmethod
     @asyncio.coroutine
     def _check_setter(self, acl, setter):
-        if setter is not None:
-            if not hasattr(setter, 'name'):
-                setter = self.server.get_any_target(setter)
-
-            if not (yield from setter.acl.has('grant')):
-                raise CommandACLError('grant')
-
-            if not (yield from setter.acl.has(acl)):
-                raise CommandACLError(acl)
+        pass
 
     @asyncio.coroutine
     def add(self, acl, setter=None, reason=None, time=None):
@@ -115,3 +111,47 @@ class ACLSet(TargetStorageSet):
     def delete(self, acl, setter=None):
         yield from self._check_setter(acl, setter)
         super().delete(acl)
+
+
+def MemberACLSet(ACLSet):
+    def _get_key(self, acl):
+        return GroupACLValues(acl.lower())
+
+    @asyncio.coroutine
+    def _check_setter(self, acl, setter):
+        acl = self._get_key(acl)
+
+        if setter is not None:
+            if not hasattr(setter, 'name'):
+                setter = self.server.get_any_target(setter)
+
+            if not setter:
+                return
+
+            if not (yield from setter.acl.has(GroupACLValues.grant)):
+                raise CommandACLError(GroupACLValues.grant)
+
+            if not (yield from setter.acl.has(acl)):
+                raise CommandACLError(acl)
+
+
+def UserACLSet(ACLSet):
+    def _get_key(self, acl):
+        return UserACLValues(acl.lower())
+
+    @asyncio.coroutine
+    def _check_setter(self, acl, setter):
+        acl = self._get_key(acl)
+
+        if setter is not None:
+            if not hasattr(setter, 'name'):
+                setter = self.server.get_any_target(setter)
+
+            if not setter:
+                return
+
+            if not (yield from setter.acl.has(UserACLValues.user_grant)):
+                raise CommandACLError(UserACLValues.user_grant)
+
+            if not (yield from setter.acl.has(acl)):
+                raise CommandACLError(acl)
