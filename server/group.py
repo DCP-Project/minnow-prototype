@@ -7,65 +7,45 @@
 import time
 from collections import defaultdict, namedtuple
 
-from server.user import User
-from server.parser import MAXFRAME
-from server.acl import GroupACLSet
+from server.storage.abstractor import GroupAbstractor
+from server.storageset import StorageSet, StorageItem
 from server.property import GroupPropertySet
+from server.acl import GroupACLSet
+
+from server.user import User
 from server.errors import *
 
+
+GroupAbstractor = GroupAbstractor.__subclasses__()[0]
 
 MembershipKey = namedtuple('MembershipKey', ('user', 'group'))
 
 
 class MembershipData:
 
-    def __init__(self, acl):
-        self.user = user
-        self.group = group
-
-        self.acl = acl
+    def __init__(self):
+        pass
 
 
-class Group:
+class GroupData(StorageItem):
 
     """ Like an IRC channel """
 
-    def __init__(self, server, name, topic=None, acl=None, property=None,
-                 ts=None):
-        self.server = server
-        self.name = name
-        self._topic = topic
-
-        if acl is None:
-            acl = GroupACLSet(server, name)
-
-        self.acl = acl
+    def __init__(self, server, name, topic=None, property=None, time_=None):
+        if not name[0] == '#':
+            name = '#{}'.format(name)
 
         if property is None:
             property = GroupPropertySet(server, name)
 
-        self.property = property
+        members = dict()
 
-        self.members = dict() 
+        self.acl = GroupACLSet(group)
 
-        self.ts = None
+        if time_ is None:
+            time = round(time.time())
 
-        if self.ts is None:
-            self.ts = round(time.time())
-
-        if not self.name[0] == '#':
-            self.name = '#' + self.name
-
-    @property
-    def topic(self):
-        return self._topic
-
-    @topic.setter
-    def topic(self, value):
-        self._topic = value
-
-        asyncio.async(self.server.proto_store.set_group(self.name.lower(),
-                      topic=value))
+        super().__init__(**locals())
 
     def member_add(self, user, reason=None):
         member = MembershipData(user, self)
@@ -85,7 +65,7 @@ class Group:
 
         # Burst the channel info
         kval = {
-            'time': [str(self.ts)],
+            'time': [str(self.time)],
             'topic': [self.topic if self.topic else ''],
         }
         user.send(self, user, 'group-info', kval)
@@ -94,7 +74,6 @@ class Group:
             'users': [u.user.name for u in self.members.keys()],
         }
 
-        # TODO use multipart
         user.send_multipart(self, user, 'group-names', ('users',), kval)
 
     def member_del(self, user, reason=None):
@@ -105,9 +84,13 @@ class Group:
 
         del self.members[member], user.members[member]
 
-    def has_member(self, user):
+    def member_has(self, user):
         member = MembershipKey(user, self)
         return member in self.members
+
+    def member_get(self, user):
+        member = MembershipKey(user, self)
+        return self.members.get(member)
 
     def message(self, source, message):
         # TODO various ACL checks
@@ -135,3 +118,37 @@ class Group:
                 continue
 
             user.send_multipart(source, target, command, keys, kval)
+
+
+class GroupSet(StorageSet):
+
+    eager = True
+    check_db_fail = False  # XXX
+
+    def __init__(self, server, name):
+        self.server = server
+        super().__init__(GroupData, GroupAbstractor(server.proto_store))
+
+    @asyncio.coroutine
+    def add(self, group, topic=None):
+        yield from super().add(group, topic)
+
+    @asyncio.coroutine
+    def _add_db(self, group, topic=None):
+        yield from super()._add_db(group, topic)
+
+    @asyncio.coroutine
+    def set(self, group, topic=None):
+        yield from super().set(group, topic)
+
+    @asyncio.coroutine
+    def _set_db(self, group, topic=None):
+        yield from super()._set_db(group, topic)
+
+    @asyncio.coroutine
+    def delete(self, group):
+        yield from super().delete(group)
+
+    @asyncio.coroutine
+    def _delete_db(self, group):
+        yield from super()._delete_db(group)

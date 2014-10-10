@@ -117,7 +117,7 @@ class StorageSet:
         return obj
 
     @asyncio.coroutine
-    def _get_db(self, key):
+    def _get_db(self, key, *args, **kwargs):
         if self.storage:
             ret = (yield from self.storage.get_one(key, *args, **kwargs))
             return ret

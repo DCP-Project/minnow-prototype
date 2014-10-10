@@ -66,7 +66,7 @@ class UserAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 class GroupAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def add(self, name, topic):
+    def add(self, name, topic=None):
         pass
 
     @abc.abstractmethod
