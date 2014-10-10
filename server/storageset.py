@@ -95,7 +95,7 @@ class StorageSet:
 
     @asyncio.coroutine
     def add_or_set(self, key, *args, **kwargs):
-        self._get_key(key)
+        key = self._get_key(key)
 
         if key in self._mapping:
             yield from self.set(key, *args, **kwargs)
