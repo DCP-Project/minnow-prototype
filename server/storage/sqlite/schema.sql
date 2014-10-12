@@ -109,6 +109,11 @@ CREATE TABLE IF NOT EXISTS 'roster_entry_group' (
     UNIQUE(group_id, roster_id)
 );
 
+CREATE TRIGGER IF NOT EXISTS "user_create_trigger" AFTER INSERT ON "user"
+BEGIN
+    INSERT INTO "roster" (user_id) VALUES (NEW.user_id);
+END;
+
 -- Ugh I botched updates. :(
 DROP TABLE IF EXISTS 'version';
 
