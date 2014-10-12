@@ -113,7 +113,7 @@ class ACLSet(TargetStorageSet, metaclass=abc.ABCMeta):
         super().delete(acl)
 
 
-def MemberACLSet(ACLSet):
+class MemberACLSet(ACLSet):
     def _get_key(self, acl):
         return GroupACLValues(acl.lower())
 
@@ -135,7 +135,7 @@ def MemberACLSet(ACLSet):
                 raise CommandACLError(acl)
 
 
-def UserACLSet(ACLSet):
+class UserACLSet(ACLSet):
     def _get_key(self, acl):
         return UserACLValues(acl.lower())
 
