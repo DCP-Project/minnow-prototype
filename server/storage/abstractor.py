@@ -41,6 +41,7 @@ class StorageAbstractor(metaclass=abc.ABCMeta):
 # If you implement your own backend, you must conform to the below classes.
 
 class UserAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
+    key_name = 'name'
 
     @abc.abstractmethod
     def add(self, name, gecos, password, avatar=None):
@@ -64,6 +65,7 @@ class UserAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
 
 class GroupAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
+    key_name = 'name'
 
     @abc.abstractmethod
     def add(self, name, topic=None):
@@ -87,17 +89,18 @@ class GroupAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
 
 class UserACLAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
+    key_name = 'name'
 
     @abc.abstractmethod
     def add(self, name, acl, setter=None, reason=None):
         pass
 
     @abc.abstractmethod
-    def get_one(self, name):
+    def get_one(self, name, acl):
         pass
 
     @abc.abstractmethod
-    def get_all(self):
+    def get_all(self, name):
         pass
 
     @abc.abstractmethod
@@ -110,10 +113,7 @@ class UserACLAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
 
 class GroupACLAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
-
-    @abc.abstractmethod
-    def get(self, name):
-        pass
+    key_names = ('name', 'target')
 
     @abc.abstractmethod
     def add(self, name, target, acl, setter=None, reason=None):
@@ -136,11 +136,12 @@ class GroupACLAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def delete_all(self, name):
+    def delete_all(self, name, target):
         pass
 
 
 class UserPropertyAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
+    key_name = 'name'
 
     @abc.abstractmethod
     def add(self, name, property, value=None, setter=None):
@@ -168,6 +169,7 @@ class UserPropertyAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
 
 class GroupPropertyAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
+    key_name = 'name'
 
     @abc.abstractmethod
     def add(self, name, property, value=None, setter=None):
@@ -191,6 +193,7 @@ class GroupPropertyAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
 
 class RosterUserAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
+    key_name = 'name'
 
     @abc.abstractmethod
     def add(self, name, user, alias=None, group_tag=None):
@@ -214,6 +217,7 @@ class RosterUserAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
 
 class RosterGroupAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
+    key_name = 'name'
 
     @abc.abstractmethod
     def add(self, name, group, alias=None, group_tag=None):
@@ -237,6 +241,7 @@ class RosterGroupAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
 
 class RosterAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
+    key_name = 'name'
 
     @abc.abstractmethod
     def add(self, name, user, alias=None, group_tag=None, pending=None):
@@ -284,6 +289,7 @@ class ACLAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
 
 
 class PropertyAbstractor(StorageAbstractor, metaclass=abc.ABCMeta):
+    key_name = 'name'
 
     @abc.abstractmethod
     def add(self, name, property, value=None, setter=None):

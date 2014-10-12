@@ -19,7 +19,6 @@ class StorageSet:
 
     """An object to hold DCP doodads (targets, users, properties, etc)"""
 
-    KEY_ROW = 'name'
     eager = False
     check_db_fail = True
 
@@ -32,9 +31,12 @@ class StorageSet:
         if storage and self.eager:
             self.populate()
 
-    @staticmethod
-    def _get_key(key):
-        key = getattr(key, self.KEY_ROW, key)
+    def _get_key(self, key):
+        if self.storage:
+            key_name = self.storage.key_name
+        else:
+            key_name = self.factory.key_name
+        key = getattr(key, key_name, key)
         if hasattr(key, 'lower'):
             key = key.lower()
 
@@ -47,7 +49,7 @@ class StorageSet:
 
         for item in store:
             # Prepare the args
-            key = item[self.KEY_ROW]
+            key = item[self.storage.key_name]
             obj = self.factory(**{k: v for k, v in item.items()})
             self._mapping[key] = obj
 
@@ -143,6 +145,36 @@ class StorageSet:
 
     def __contains__(self, key):
         return (yield from self.has(key))
+
+
+class NKeyedStorageSet(StorageSet):
+    # __init__ is already implemented satisfactorily in StorageSet.
+
+    def _get_key(self, key):
+        """ where the magick happens. """
+        if self.storage:
+            keys = self.storage.key_names
+        else:
+            keys = self.factory.key_names
+
+        if isinstance(key, collections.abc.Mapping) and\
+           all(attr in key for attr in keys):
+            return {attr: key[attr] for attr in keys}
+        if any(not hasattr(key, attr) for attr in keys):
+            raise ValueError
+        real_key = {attr: getattr(key,attr) for attr in keys}
+
+        return real_key
+
+    def populate(self):
+        store = (yield from self._populate_db())
+        if not store:
+            return
+
+        for item in store:
+            key = _get_key(item)  # the 'key' difference (no pun intended)
+            obj = self.factory(**{k: v for k, v in item.items()})
+            self._mapping[key] = obj
 
 
 class TargetStorageSet(StorageSet):

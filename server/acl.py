@@ -11,9 +11,10 @@ import abc
 from time import time
 
 from server.storageset import StorageSet, StorageItem
-from server.storage.abstractor import ACLAbstractor
+from server.storage.abstractor import ACLAbstractor, GroupACLAbstractor
 
 ACLAbstractor = ACLAbstractor.__subclasses__()[0]
+GroupACLAbstractor = GroupACLAbstractor.__subclasses__()[0]
 
 
 class UserACLValues(enum.Enum):
@@ -155,3 +156,9 @@ class UserACLSet(ACLSet):
 
             if not (yield from setter.acl.has(acl)):
                 raise CommandACLError(acl)
+
+
+class GroupACLSet(NKeyedStorageSet):
+    def __init__(self, server, group):
+        self.server = server
+        super().__init__(GroupACLData, GroupACLAbstractor(server.proto_store))
