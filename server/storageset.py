@@ -34,7 +34,7 @@ class StorageSet:
 
     @staticmethod
     def _get_key(key):
-        key = getattr(key, 'name', key)
+        key = getattr(key, self.KEY_ROW, key)
         if hasattr(key, 'lower'):
             key = key.lower()
 
