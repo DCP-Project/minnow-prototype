@@ -7,16 +7,16 @@
 import enum
 from time import time
 
-class UserPropertyValues(enum.Enum):
+class PropertyUserValues(enum.Enum):
     private = None
     wallops = None
 
 
-class GroupPropertyValues(enum.Enum):
+class PropertyGroupValues(enum.Enum):
     private = None
     invite = str
     moderated = None
-    #topic = str
+    topic = str
 
 
 class Property:
@@ -31,141 +31,46 @@ class Property:
 
         self.time = time_
 
-class BasePropertySet:
-    __slots__ = ['server', 'prop_map']
 
-    def __init__(self, server, prop_data=[]):
-        # NOTE - we use prop_data here separate instead of getting it ourselves
-        # because __init__ being a coroutine is probably dodgy.
-        self.server = server
-        self.prop_map = dict()
+class PropertyUserList:
+    def __init__(self):
+        self.property = dict()
 
-        if not prop_data:
-            return
+    def set(self, property, value=None):
+        property = PropertyUserValues(property.casefold())
 
-        for prop in prop_data:
-            self._set_nocommit(prop['property'], prop['setter'],
-                               prop['timestamp'])
+        if property.value != None:
+            # Try to "cast" to correct type specified by entry
+            value = property.value(value)
+        else:
+            value = True
 
-    def __iter__(self):
-        return self.prop_map.items()
+        self.property[property] = value
 
-    def has_property(self, property):
-        return property in self.prop_map
+    def remove(self, property):
+        self.property.pop(PropertyUserValues(property.casefold()))
 
     def get(self, property):
-        return self.prop_map.get(property)
-
-    def _set_nocommit(self, property, value, setter=None, time_=None):
-        self.prop_map[property] = Property(value, setter, time_)
-        return (True, None)
-
-    def set(self, property, value, setter=None):
-        if not isinstance(property, str):
-            assert len(property) == len(value)
-
-            for i, p in enumerate(property):
-                self.set(p, value[i], setter)
-
-            return
-
-        self._set_nocommit(property, value, setter)
-
-    def delete(self, property):
-        if not isinstance(property, str):
-            for p in property:
-                self.delete(a)
-
-            return
-
-        if property not in self.prop_map:
-            raise PropertyDoesNotExistError('Property does not exist')
-
-        del self.prop_map[property]
+        return self.property.get(PropertyUserValues(property.casefold()), None)
 
 
-class UserPropertySet(BasePropertySet):
-    __slots__ = BasePropertySet.__slots__ + ['user']
+class PropertyGroupList:
+    def __init__(self):
+        self.property = dict()
+    
+    def set(self, property, value=None):
+        property = PropertyGroupValues(property.casefold())
 
-    def __init__(self, server, user, prop_data=None):
-        super().__init__(server, prop_data)
-        self.user = user.lower()
-
-    def _set_nocommit(self, property, value, setter=None, time_=None):
-        property = property.lower()
-
-        if property not in UserPropertyValues:
-            return (False, PropertyInvalidError(property))
-
-        if not setter:
-            setter = self.user
-
-        typecast = UserPropertyValues[property].value
-        if typecast is not None:
-            try:
-                value = typecast(value)
-            except Exception as e:
-                return (False, PropertyValueError(str(e)))
-
-        return super()._set_nocommit(property, value, setter, time_)
-
-    def set(self, property, value, setter=None):
-        property = property.lower()
-        if property in self.prop_map:
-            function = self.server.proto_store.set_property_user
+        if property.value != None:
+            # Try to "cast" to correct type specified by entry
+            value = property.value(value)
         else:
-            function = self.server.proto_store.create_property_user
+            value = True
 
-        setter = getattr(setter, 'name', setter).lower()
-        super().set(property, value, setter)
-        if not ret:
-            raise code
+        self.property[property] = value
 
-        asyncio.async(function(self.user, property, value, setter))
+    def remove(self, property):
+        self.property.pop(PropertyGroupValues(property.casefold()))
 
-    def delete(self, property):
-        super().delete(property)
-        function = self.server.proto_store.delete_property_user
-        asyncio.async(function(self.user, property))
-
-
-class GroupPropertySet(BasePropertySet):
-    __slots__ = BasePropertySet.__slots__ + ['group']
-
-    def __init__(self, server, group, prop_data=None):
-        super().__init__(server, prop_data)
-        self.group = group.lower()
-
-    def _set_nocommit(self, property, value, setter=None, time_=None):
-        property = property.lower()
-
-        if property not in GroupPropertyValues:
-            return (False, PropertyInvalidError(property))
-
-        typecast = GroupPropertyValues[property].value
-        if typecast is not None:
-            try:
-                value = typecast(value)
-            except Exception as e:
-                return (False, PropertyValueError(str(e)))
-
-        return super()._set_nocommit(property, value, setter, time_)
-
-    def set(self, property, value, setter=None):
-        property = property.lower()
-        if property in self.prop_map:
-            function = self.server.proto_store.set_property_user
-        else:
-            function = self.server.proto_store.create_property_user
-
-        setter = getattr(setter, 'name', setter).lower()
-        ret, code = super().set(property, value, setter)
-        if not ret:
-            raise code
-
-        asyncio.async(function(self.group, property, value, setter))
-
-    def delete(self, property):
-        super().delete(property)
-        function = self.server.proto_store.delete_property_group
-        asyncio.async(function(self.group, property))
+    def get(self, property):
+        return self.property.get(PropertyGroupValues(property.casefold()), None)
