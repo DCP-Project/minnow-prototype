@@ -4,7 +4,7 @@
 This is a server for the Domain Chat Protocol (DCP).
 
 The spec is actively being developed, as is this server, Minnow, and the
-client, [Gilligan](https://github.com/DCP-Project/gilligan-prototype).
+client, [Gilligan](https://code.foxkit.us/DCP/gilligan-prototype).
 
 ## Requirements
 * Python 3.4 or above. It wouldn't be hard to retarget everything for Python
@@ -21,7 +21,7 @@ The motd is stored in `motd.txt`. All lines will be truncated at 200 characters
 for sanity reasons.
 
 ## Development
-See the [STATUS](https://github.com/DCP-Project/minnow-prototype/blob/master/status.md)
+See the [STATUS](https://code.foxkit.us/DCP/minnow-prototype/blob/master/STATUS.md)
 for details.
 
 You can find us at irc.interlinked.me #dcp for the moment, ironically.
