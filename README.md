@@ -1,4 +1,4 @@
-# Minnow - the prototype DCP server
+# Minnow - the (original) prototype DCP server
 
 ## Introduction
 This is a server for the Domain Chat Protocol (DCP).
